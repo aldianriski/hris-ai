@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-geist-sans: 'Geist Sans', system-ui, sans-serif;
+    --font-geist-mono: 'Geist Mono', monospace;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
+
+@layer utilities {
+  /* Print Styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .print-full-width {
+      width: 100% !important;
+      margin: 0 !important;
+    }
+
+    .shadow-talixa,
+    .shadow-talixa-lg,
+    .shadow-talixa-xl {
+      box-shadow: none !important;
+    }
+
+    body {
+      color: #000 !important;
+    }
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-primary bg-clip-text text-transparent;
+  }
+}
+
+@layer components {
+  /* Page Container */
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6;
+  }
+
+  /* Card Hover Effect */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-talixa-lg hover:scale-[1.01];
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+}
