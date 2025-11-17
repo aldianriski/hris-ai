@@ -2,25 +2,25 @@
   "compilerOptions": {
     /* Language and Environment */
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "preserve",
-
     /* Modules */
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
-
     /* Emit */
     "noEmit": true,
     "incremental": true,
-
     /* Interop Constraints */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-
     /* Type Checking - STRICT MODE */
     "strict": true,
     "noUnusedLocals": true,
@@ -30,29 +30,43 @@
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
-
     /* Completeness */
     "skipLibCheck": true,
-
     /* Path Mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
-      "@/modules/*": ["./src/modules/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/config/*": ["./src/config/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/modules/*": [
+        "./src/modules/*"
+      ],
+      "@/app/*": [
+        "./src/app/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ],
+      "@/utils/*": [
+        "./src/utils/*"
+      ],
+      "@/config/*": [
+        "./src/config/*"
+      ]
     },
-
     /* Next.js */
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ],
+    "allowJs": true
   },
   "include": [
     "next-env.d.ts",
