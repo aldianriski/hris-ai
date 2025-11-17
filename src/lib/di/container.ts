@@ -3,6 +3,11 @@ import {
   SupabaseEmployeeRepository,
   SupabaseAttendanceRepository,
   SupabaseLeaveRepository,
+  SupabasePayrollRepository,
+  SupabasePerformanceRepository,
+  SupabaseDocumentRepository,
+  SupabaseOrganizationRepository,
+  SupabaseComplianceRepository,
 } from '@/modules/hr/infrastructure/repositories';
 
 // AI Services
@@ -37,6 +42,11 @@ export class DIContainer {
   private employeeRepository?: SupabaseEmployeeRepository;
   private attendanceRepository?: SupabaseAttendanceRepository;
   private leaveRepository?: SupabaseLeaveRepository;
+  private payrollRepository?: SupabasePayrollRepository;
+  private performanceRepository?: SupabasePerformanceRepository;
+  private documentRepository?: SupabaseDocumentRepository;
+  private organizationRepository?: SupabaseOrganizationRepository;
+  private complianceRepository?: SupabaseComplianceRepository;
 
   // AI Services
   private aiAnomalyDetector?: AIAnomalyDetector;
@@ -79,6 +89,46 @@ export class DIContainer {
       this.leaveRepository = new SupabaseLeaveRepository(supabase);
     }
     return this.leaveRepository;
+  }
+
+  getPayrollRepository(): SupabasePayrollRepository {
+    if (!this.payrollRepository) {
+      const supabase = createServerClient();
+      this.payrollRepository = new SupabasePayrollRepository(supabase);
+    }
+    return this.payrollRepository;
+  }
+
+  getPerformanceRepository(): SupabasePerformanceRepository {
+    if (!this.performanceRepository) {
+      const supabase = createServerClient();
+      this.performanceRepository = new SupabasePerformanceRepository(supabase);
+    }
+    return this.performanceRepository;
+  }
+
+  getDocumentRepository(): SupabaseDocumentRepository {
+    if (!this.documentRepository) {
+      const supabase = createServerClient();
+      this.documentRepository = new SupabaseDocumentRepository(supabase);
+    }
+    return this.documentRepository;
+  }
+
+  getOrganizationRepository(): SupabaseOrganizationRepository {
+    if (!this.organizationRepository) {
+      const supabase = createServerClient();
+      this.organizationRepository = new SupabaseOrganizationRepository(supabase);
+    }
+    return this.organizationRepository;
+  }
+
+  getComplianceRepository(): SupabaseComplianceRepository {
+    if (!this.complianceRepository) {
+      const supabase = createServerClient();
+      this.complianceRepository = new SupabaseComplianceRepository(supabase);
+    }
+    return this.complianceRepository;
   }
 
   // AI Service Factories
