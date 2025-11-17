@@ -15,7 +15,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(\`Failed to find review: \${error.message}\`);
+      throw new Error(`Failed to find review: ${error.message}`);
     }
 
     return this.mapReviewToEntity(data);
@@ -33,8 +33,8 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     if (options?.reviewType) query = query.eq('review_type', options.reviewType);
     if (options?.status) query = query.eq('status', options.status);
     if (options?.year) {
-      query = query.gte('review_period_start', \`\${options.year}-01-01\`)
-        .lte('review_period_start', \`\${options.year}-12-31\`);
+      query = query.gte('review_period_start', `${options.year}-01-01`)
+        .lte('review_period_start', `${options.year}-12-31`);
     }
 
     const limit = options?.limit ?? 20;
@@ -42,7 +42,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find reviews: \${error.message}\`);
+    if (error) throw new Error(`Failed to find reviews: ${error.message}`);
 
     return {
       reviews: (data || []).map((row) => this.mapReviewToEntity(row)),
@@ -62,8 +62,8 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     if (options?.reviewType) query = query.eq('review_type', options.reviewType);
     if (options?.status) query = query.eq('status', options.status);
     if (options?.year) {
-      query = query.gte('review_period_start', \`\${options.year}-01-01\`)
-        .lte('review_period_start', \`\${options.year}-12-31\`);
+      query = query.gte('review_period_start', `${options.year}-01-01`)
+        .lte('review_period_start', `${options.year}-12-31`);
     }
 
     const limit = options?.limit ?? 20;
@@ -71,7 +71,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find reviews: \${error.message}\`);
+    if (error) throw new Error(`Failed to find reviews: ${error.message}`);
 
     return {
       reviews: (data || []).map((row) => this.mapReviewToEntity(row)),
@@ -87,7 +87,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: true });
 
-    if (error) throw new Error(\`Failed to find pending reviews: \${error.message}\`);
+    if (error) throw new Error(`Failed to find pending reviews: ${error.message}`);
     return (data || []).map((row) => this.mapReviewToEntity(row));
   }
 
@@ -98,7 +98,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to create review: \${error.message}\`);
+    if (error) throw new Error(`Failed to create review: ${error.message}`);
     return this.mapReviewToEntity(data);
   }
 
@@ -110,13 +110,13 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to update review: \${error.message}\`);
+    if (error) throw new Error(`Failed to update review: ${error.message}`);
     return this.mapReviewToEntity(data);
   }
 
   async deleteReview(id: string): Promise<void> {
     const { error } = await this.supabase.from('performance_reviews').delete().eq('id', id);
-    if (error) throw new Error(\`Failed to delete review: \${error.message}\`);
+    if (error) throw new Error(`Failed to delete review: ${error.message}`);
   }
 
   async findGoalById(id: string): Promise<PerformanceGoal | null> {
@@ -128,7 +128,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(\`Failed to find goal: \${error.message}\`);
+      throw new Error(`Failed to find goal: ${error.message}`);
     }
 
     return this.mapGoalToEntity(data);
@@ -153,7 +153,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find goals: \${error.message}\`);
+    if (error) throw new Error(`Failed to find goals: ${error.message}`);
 
     return {
       goals: (data || []).map((row) => this.mapGoalToEntity(row)),
@@ -180,7 +180,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find goals: \${error.message}\`);
+    if (error) throw new Error(`Failed to find goals: ${error.message}`);
 
     return {
       goals: (data || []).map((row) => this.mapGoalToEntity(row)),
@@ -196,7 +196,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .in('status', ['active', 'on_track', 'at_risk'])
       .lt('due_date', new Date().toISOString().split('T')[0]);
 
-    if (error) throw new Error(\`Failed to find overdue goals: \${error.message}\`);
+    if (error) throw new Error(`Failed to find overdue goals: ${error.message}`);
     return (data || []).map((row) => this.mapGoalToEntity(row));
   }
 
@@ -206,7 +206,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select('*')
       .eq('parent_goal_id', parentGoalId);
 
-    if (error) throw new Error(\`Failed to find child goals: \${error.message}\`);
+    if (error) throw new Error(`Failed to find child goals: ${error.message}`);
     return (data || []).map((row) => this.mapGoalToEntity(row));
   }
 
@@ -217,7 +217,7 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to create goal: \${error.message}\`);
+    if (error) throw new Error(`Failed to create goal: ${error.message}`);
     return this.mapGoalToEntity(data);
   }
 
@@ -229,13 +229,13 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to update goal: \${error.message}\`);
+    if (error) throw new Error(`Failed to update goal: ${error.message}`);
     return this.mapGoalToEntity(data);
   }
 
   async deleteGoal(id: string): Promise<void> {
     const { error } = await this.supabase.from('performance_goals').delete().eq('id', id);
-    if (error) throw new Error(\`Failed to delete goal: \${error.message}\`);
+    if (error) throw new Error(`Failed to delete goal: ${error.message}`);
   }
 
   async getEmployeePerformanceStats(employeeId: string, year: number): Promise<{
@@ -251,8 +251,8 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select('overall_rating')
       .eq('employee_id', employeeId)
       .eq('status', 'completed')
-      .gte('review_period_start', \`\${year}-01-01\`)
-      .lte('review_period_start', \`\${year}-12-31\`);
+      .gte('review_period_start', `${year}-01-01`)
+      .lte('review_period_start', `${year}-12-31`);
 
     const totalReviews = reviews?.length || 0;
     const averageRating = totalReviews > 0 
@@ -264,16 +264,16 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .from('performance_goals')
       .select('*', { count: 'exact', head: true })
       .eq('employee_id', employeeId)
-      .gte('start_date', \`\${year}-01-01\`)
-      .lte('start_date', \`\${year}-12-31\`);
+      .gte('start_date', `${year}-01-01`)
+      .lte('start_date', `${year}-12-31`);
 
     const { count: goalsAchieved } = await this.supabase
       .from('performance_goals')
       .select('*', { count: 'exact', head: true })
       .eq('employee_id', employeeId)
       .eq('status', 'achieved')
-      .gte('start_date', \`\${year}-01-01\`)
-      .lte('start_date', \`\${year}-12-31\`);
+      .gte('start_date', `${year}-01-01`)
+      .lte('start_date', `${year}-12-31`);
 
     const achievementRate = (totalGoals && totalGoals > 0) ? ((goalsAchieved || 0) / totalGoals) * 100 : 0;
 
@@ -292,8 +292,8 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .select('overall_rating')
       .eq('employer_id', employerId)
       .eq('status', 'completed')
-      .gte('review_period_start', \`\${year}-01-01\`)
-      .lte('review_period_start', \`\${year}-12-31\`);
+      .gte('review_period_start', `${year}-01-01`)
+      .lte('review_period_start', `${year}-12-31`);
 
     const totalReviews = reviews?.length || 0;
     const averageRating = totalReviews > 0 
@@ -312,16 +312,16 @@ export class SupabasePerformanceRepository implements IPerformanceRepository {
       .from('performance_goals')
       .select('*', { count: 'exact', head: true })
       .eq('employer_id', employerId)
-      .gte('start_date', \`\${year}-01-01\`)
-      .lte('start_date', \`\${year}-12-31\`);
+      .gte('start_date', `${year}-01-01`)
+      .lte('start_date', `${year}-12-31`);
 
     const { count: goalsAchieved } = await this.supabase
       .from('performance_goals')
       .select('*', { count: 'exact', head: true })
       .eq('employer_id', employerId)
       .eq('status', 'achieved')
-      .gte('start_date', \`\${year}-01-01\`)
-      .lte('start_date', \`\${year}-12-31\`);
+      .gte('start_date', `${year}-01-01`)
+      .lte('start_date', `${year}-12-31`);
 
     return { averageRating, totalReviews, ratingsDistribution, goalsAchieved: goalsAchieved || 0, totalGoals: totalGoals || 0 };
   }

@@ -15,7 +15,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(\`Failed to find department: \${error.message}\`);
+      throw new Error(`Failed to find department: ${error.message}`);
     }
 
     return this.mapDepartmentToEntity(data);
@@ -43,7 +43,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
     query = query.order('display_order', { ascending: true });
 
     const { data, error } = await query;
-    if (error) throw new Error(\`Failed to find departments: \${error.message}\`);
+    if (error) throw new Error(`Failed to find departments: ${error.message}`);
 
     return (data || []).map((row) => this.mapDepartmentToEntity(row));
   }
@@ -55,7 +55,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .eq('parent_id', departmentId)
       .order('display_order', { ascending: true });
 
-    if (error) throw new Error(\`Failed to find department children: \${error.message}\`);
+    if (error) throw new Error(`Failed to find department children: ${error.message}`);
     return (data || []).map((row) => this.mapDepartmentToEntity(row));
   }
 
@@ -67,7 +67,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .order('level', { ascending: true })
       .order('display_order', { ascending: true });
 
-    if (error) throw new Error(\`Failed to find department hierarchy: \${error.message}\`);
+    if (error) throw new Error(`Failed to find department hierarchy: ${error.message}`);
 
     const departments = (data || []).map((row) => this.mapDepartmentToEntity(row));
     const topLevel = departments.filter((d) => d.parentId === null);
@@ -85,7 +85,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to create department: \${error.message}\`);
+    if (error) throw new Error(`Failed to create department: ${error.message}`);
     return this.mapDepartmentToEntity(data);
   }
 
@@ -97,13 +97,13 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to update department: \${error.message}\`);
+    if (error) throw new Error(`Failed to update department: ${error.message}`);
     return this.mapDepartmentToEntity(data);
   }
 
   async deleteDepartment(id: string): Promise<void> {
     const { error } = await this.supabase.from('departments').delete().eq('id', id);
-    if (error) throw new Error(\`Failed to delete department: \${error.message}\`);
+    if (error) throw new Error(`Failed to delete department: ${error.message}`);
   }
 
   async findPositionById(id: string): Promise<Position | null> {
@@ -115,7 +115,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(\`Failed to find position: \${error.message}\`);
+      throw new Error(`Failed to find position: ${error.message}`);
     }
 
     return this.mapPositionToEntity(data);
@@ -139,7 +139,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
     query = query.order('display_order', { ascending: true });
 
     const { data, error } = await query;
-    if (error) throw new Error(\`Failed to find positions: \${error.message}\`);
+    if (error) throw new Error(`Failed to find positions: ${error.message}`);
 
     return (data || []).map((row) => this.mapPositionToEntity(row));
   }
@@ -151,7 +151,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .eq('department_id', departmentId)
       .order('display_order', { ascending: true });
 
-    if (error) throw new Error(\`Failed to find positions by department: \${error.message}\`);
+    if (error) throw new Error(`Failed to find positions by department: ${error.message}`);
     return (data || []).map((row) => this.mapPositionToEntity(row));
   }
 
@@ -162,7 +162,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to create position: \${error.message}\`);
+    if (error) throw new Error(`Failed to create position: ${error.message}`);
     return this.mapPositionToEntity(data);
   }
 
@@ -174,13 +174,13 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to update position: \${error.message}\`);
+    if (error) throw new Error(`Failed to update position: ${error.message}`);
     return this.mapPositionToEntity(data);
   }
 
   async deletePosition(id: string): Promise<void> {
     const { error } = await this.supabase.from('positions').delete().eq('id', id);
-    if (error) throw new Error(\`Failed to delete position: \${error.message}\`);
+    if (error) throw new Error(`Failed to delete position: ${error.message}`);
   }
 
   async getOrganizationStats(employerId: string): Promise<{

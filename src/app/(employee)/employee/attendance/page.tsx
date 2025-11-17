@@ -18,17 +18,17 @@ export default function AttendancePage() {
   const { data: todayRecord, isLoading: isTodayLoading } = useTodayAttendance(employeeId);
 
   // Get attendance records for the current month
-  const startOfMonth = useMemo(() => {
+  const startOfMonth = useMemo((): string => {
     const date = new Date();
     date.setDate(1);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split('T')[0]!;
   }, []);
 
-  const endOfMonth = useMemo(() => {
+  const endOfMonth = useMemo((): string => {
     const date = new Date();
     date.setMonth(date.getMonth() + 1);
     date.setDate(0);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split('T')[0]!;
   }, []);
 
   const { data: monthRecords, isLoading: isMonthLoading } = useAttendanceRecords(

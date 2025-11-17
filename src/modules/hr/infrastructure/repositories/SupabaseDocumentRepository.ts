@@ -14,7 +14,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(\`Failed to find document: \${error.message}\`);
+      throw new Error(`Failed to find document: ${error.message}`);
     }
 
     return this.mapToEntity(data);
@@ -40,7 +40,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find documents: \${error.message}\`);
+    if (error) throw new Error(`Failed to find documents: ${error.message}`);
 
     return {
       documents: (data || []).map((row) => this.mapToEntity(row)),
@@ -68,7 +68,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
-    if (error) throw new Error(\`Failed to find documents: \${error.message}\`);
+    if (error) throw new Error(`Failed to find documents: ${error.message}`);
 
     return {
       documents: (data || []).map((row) => this.mapToEntity(row)),
@@ -88,7 +88,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
       .lte('expiry_date', futureDate.toISOString().split('T')[0])
       .gte('expiry_date', new Date().toISOString().split('T')[0]);
 
-    if (error) throw new Error(\`Failed to find expiring documents: \${error.message}\`);
+    if (error) throw new Error(`Failed to find expiring documents: ${error.message}`);
     return (data || []).map((row) => this.mapToEntity(row));
   }
 
@@ -100,7 +100,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
       .is('extracted_data', null)
       .in('document_type', ['ktp', 'npwp', 'bpjs_kesehatan', 'bpjs_ketenagakerjaan', 'kk', 'passport', 'contract']);
 
-    if (error) throw new Error(\`Failed to find documents needing extraction: \${error.message}\`);
+    if (error) throw new Error(`Failed to find documents needing extraction: ${error.message}`);
     return (data || []).map((row) => this.mapToEntity(row));
   }
 
@@ -111,7 +111,7 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to create document: \${error.message}\`);
+    if (error) throw new Error(`Failed to create document: ${error.message}`);
     return this.mapToEntity(data);
   }
 
@@ -123,13 +123,13 @@ export class SupabaseDocumentRepository implements IDocumentRepository {
       .select()
       .single();
 
-    if (error) throw new Error(\`Failed to update document: \${error.message}\`);
+    if (error) throw new Error(`Failed to update document: ${error.message}`);
     return this.mapToEntity(data);
   }
 
   async deleteDocument(id: string): Promise<void> {
     const { error } = await this.supabase.from('employee_documents').delete().eq('id', id);
-    if (error) throw new Error(\`Failed to delete document: \${error.message}\`);
+    if (error) throw new Error(`Failed to delete document: ${error.message}`);
   }
 
   async getDocumentStats(employerId: string): Promise<{
