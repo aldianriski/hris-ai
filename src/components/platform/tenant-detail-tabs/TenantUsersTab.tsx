@@ -14,9 +14,10 @@ import {
   DropdownMenu,
   DropdownItem,
 } from '@heroui/react';
-import { Search, UserPlus, Mail, Shield, MoreVertical, Edit, Power, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Mail, Shield, MoreVertical, Edit, Power, Trash2, UserCog } from 'lucide-react';
 import { getRoleDisplayName } from '@/lib/auth/permissions';
 import { AddTenantUserModal } from './AddTenantUserModal';
+import { ImpersonateUserModal } from '../ImpersonateUserModal';
 
 interface TenantUsersTabProps {
   tenantId: string;
@@ -35,12 +36,32 @@ export function TenantUsersTab({ tenantId }: TenantUsersTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [tenantInfo, setTenantInfo] = useState<any | null>(null);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isImpersonateModalOpen,
+    onOpen: onImpersonateModalOpen,
+    onClose: onImpersonateModalClose
+  } = useDisclosure();
 
   useEffect(() => {
     fetchUsers();
+    fetchTenantInfo();
   }, [tenantId, searchQuery]);
+
+  const fetchTenantInfo = async () => {
+    try {
+      const response = await fetch(`/api/platform/tenants/${tenantId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setTenantInfo(result.tenant);
+      }
+    } catch (err) {
+      console.error('Error fetching tenant info:', err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -63,6 +84,11 @@ export function TenantUsersTab({ tenantId }: TenantUsersTabProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImpersonate = (user: any) => {
+    setSelectedUser(user);
+    onImpersonateModalOpen();
   };
 
   const handleToggleStatus = async (user: any) => {
@@ -228,6 +254,14 @@ export function TenantUsersTab({ tenantId }: TenantUsersTabProps) {
                         </DropdownTrigger>
                         <DropdownMenu aria-label="User actions">
                           <DropdownItem
+                            key="impersonate"
+                            startContent={<UserCog className="w-4 h-4" />}
+                            className="text-primary"
+                            onPress={() => handleImpersonate(user)}
+                          >
+                            Impersonate User
+                          </DropdownItem>
+                          <DropdownItem
                             key="toggle-status"
                             startContent={<Power className="w-4 h-4" />}
                             className={user.is_active ? 'text-warning' : 'text-success'}
@@ -279,6 +313,23 @@ export function TenantUsersTab({ tenantId }: TenantUsersTabProps) {
         onSuccess={fetchUsers}
         tenantId={tenantId}
       />
+
+      {selectedUser && tenantInfo && (
+        <ImpersonateUserModal
+          isOpen={isImpersonateModalOpen}
+          onClose={onImpersonateModalClose}
+          targetUser={{
+            id: selectedUser.id,
+            email: selectedUser.email,
+            full_name: selectedUser.full_name,
+            role: selectedUser.role,
+          }}
+          tenant={{
+            id: tenantInfo.id,
+            company_name: tenantInfo.company_name,
+          }}
+        />
+      )}
     </>
   );
 }

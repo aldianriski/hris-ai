@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Card, CardBody, Tabs, Tab, Button, Chip, Spinner } from '@heroui/react';
+import { Card, CardBody, Tabs, Tab, Button, Chip, Spinner, useDisclosure } from '@heroui/react';
 import {
   ArrowLeft,
   Building2,
@@ -23,6 +23,7 @@ import { TenantUsageTab } from './tenant-detail-tabs/TenantUsageTab';
 import { TenantSettingsTab } from './tenant-detail-tabs/TenantSettingsTab';
 import { TenantAuditLogsTab } from './tenant-detail-tabs/TenantAuditLogsTab';
 import { TenantSupportTab } from './tenant-detail-tabs/TenantSupportTab';
+import { SuspendTenantModal } from './SuspendTenantModal';
 import { useRealtimeTenant } from '@/lib/realtime/use-realtime-tenants';
 
 interface TenantDetailViewProps {
@@ -71,31 +72,34 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal disclosure for suspend/activate
+  const { isOpen: isSuspendModalOpen, onOpen: onSuspendModalOpen, onClose: onSuspendModalClose } = useDisclosure();
+
   // Use real-time hook for automatic updates
   const { tenant, setTenant } = useRealtimeTenant(tenantId, null);
 
-  useEffect(() => {
-    async function fetchTenant() {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/platform/tenants/${tenantId}`);
+  const fetchTenant = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/platform/tenants/${tenantId}`);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch tenant');
-        }
-
-        const data = await response.json();
-        setTenant(data.tenant);
-      } catch (err) {
-        console.error('Error fetching tenant:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch tenant');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenant');
       }
-    }
 
+      const data = await response.json();
+      setTenant(data.tenant);
+    } catch (err) {
+      console.error('Error fetching tenant:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch tenant');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTenant();
-  }, [tenantId, setTenant]);
+  }, [tenantId]);
 
   if (loading) {
     return (
@@ -181,6 +185,7 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
               color="warning"
               startContent={<PauseCircle className="w-4 h-4" />}
               size="sm"
+              onPress={onSuspendModalOpen}
             >
               Suspend
             </Button>
@@ -190,12 +195,27 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
               color="success"
               startContent={<PlayCircle className="w-4 h-4" />}
               size="sm"
+              onPress={onSuspendModalOpen}
             >
               Activate
             </Button>
           )}
         </div>
       </div>
+
+      {/* Suspend/Activate Modal */}
+      {tenant && (
+        <SuspendTenantModal
+          isOpen={isSuspendModalOpen}
+          onClose={onSuspendModalClose}
+          onSuccess={fetchTenant}
+          tenant={{
+            id: tenant.id,
+            company_name: tenant.company_name,
+            status: tenant.status,
+          }}
+        />
+      )}
 
       {/* Tabs */}
       <Card>
