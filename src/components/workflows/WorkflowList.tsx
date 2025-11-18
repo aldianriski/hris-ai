@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Plus,
+  Eye,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -30,6 +32,7 @@ interface Workflow {
   successRate: number;
   lastRun: string;
   createdAt: string;
+  viewUrl?: string;
 }
 
 export function WorkflowList() {
@@ -61,6 +64,7 @@ export function WorkflowList() {
       successRate: 100,
       lastRun: '2 hours ago',
       createdAt: '2024-02-01',
+      viewUrl: '/hr/workflows/onboarding',
     },
     {
       id: '3',
@@ -93,13 +97,14 @@ export function WorkflowList() {
       name: 'Offboarding Process',
       description: 'Employee exit workflow with asset return tracking',
       type: 'Offboarding',
-      status: 'draft',
+      status: 'active',
       trigger: 'Resignation Submitted',
       steps: 10,
-      runs: 0,
-      successRate: 0,
-      lastRun: 'Never',
+      runs: 8,
+      successRate: 100,
+      lastRun: '3 days ago',
       createdAt: '2024-11-10',
+      viewUrl: '/hr/workflows/offboarding',
     },
   ];
 
@@ -316,6 +321,18 @@ export function WorkflowList() {
                             Last run: {workflow.lastRun}
                           </p>
                           <div className="flex items-center gap-1">
+                            {workflow.viewUrl && (
+                              <Button
+                                as={Link}
+                                href={workflow.viewUrl}
+                                size="sm"
+                                variant="flat"
+                                color="primary"
+                                startContent={<Eye className="h-4 w-4" />}
+                              >
+                                View
+                              </Button>
+                            )}
                             <Button isIconOnly size="sm" variant="light">
                               <Edit className="h-4 w-4" />
                             </Button>
