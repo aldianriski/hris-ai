@@ -18,3 +18,5 @@ export {
   type CardProps,
 } from './Card';
 export { Container, Section, type ContainerProps, type SectionProps } from './Container';
+export { MarketingHeader } from './Header';
+export { MarketingFooter } from './Footer';
