@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { complianceService } from '../api/services/complianceService';
 
 export interface ComplianceAlert {
   id: string;
@@ -45,19 +46,11 @@ export const complianceKeys = {
  */
 export function useComplianceAlerts(
   employerId: string | null,
-  filters?: { severity?: string; status?: 'active' | 'resolved' }
+  filters?: { severity?: string; status?: string }
 ) {
   return useQuery({
     queryKey: complianceKeys.alertsList(employerId!, filters),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.severity) params.append('severity', filters.severity);
-      if (filters?.status) params.append('status', filters.status);
-
-      const response = await fetch(`/api/v1/compliance/alerts?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch compliance alerts');
-      return response.json() as Promise<{ alerts: ComplianceAlert[]; total: number }>;
-    },
+    queryFn: () => complianceService.getAlerts(employerId!, filters),
     enabled: !!employerId,
     refetchInterval: 60000, // Refetch every minute for critical alerts
   });
@@ -70,15 +63,8 @@ export function useResolveAlert() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ alertId, notes }: { alertId: string; notes?: string }) => {
-      const response = await fetch(`/api/v1/compliance/alerts/${alertId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
-      });
-      if (!response.ok) throw new Error('Failed to resolve alert');
-      return response.json();
-    },
+    mutationFn: ({ alertId, resolution }: { alertId: string; resolution?: string }) =>
+      complianceService.resolveAlert(alertId, resolution),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: complianceKeys.alerts() });
       toast.success('Alert resolved successfully');
@@ -96,22 +82,11 @@ export function useResolveAlert() {
  */
 export function useAuditLogs(
   employerId: string | null,
-  filters?: { userId?: string; action?: string; entityType?: string; startDate?: string; endDate?: string }
+  filters?: { action?: string; entityType?: string; startDate?: string; endDate?: string }
 ) {
   return useQuery({
     queryKey: complianceKeys.auditLogsList(employerId!, filters),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.userId) params.append('userId', filters.userId);
-      if (filters?.action) params.append('action', filters.action);
-      if (filters?.entityType) params.append('entityType', filters.entityType);
-      if (filters?.startDate) params.append('startDate', filters.startDate);
-      if (filters?.endDate) params.append('endDate', filters.endDate);
-
-      const response = await fetch(`/api/v1/compliance/audit-logs?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch audit logs');
-      return response.json() as Promise<{ logs: AuditLog[]; total: number }>;
-    },
+    queryFn: () => complianceService.getAuditLogs(employerId!, filters),
     enabled: !!employerId,
   });
 }

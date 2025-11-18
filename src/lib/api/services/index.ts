@@ -3,3 +3,7 @@ export { attendanceService } from './attendanceService';
 export { leaveService } from './leaveService';
 export { payrollService } from './payrollService';
 export { performanceService } from './performanceService';
+export { workflowService } from './workflowService';
+export { complianceService } from './complianceService';
+export { analyticsService } from './analyticsService';
+export { attendanceAnomalyService } from './attendanceAnomalyService';

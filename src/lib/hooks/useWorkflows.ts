@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { workflowService } from '../api/services/workflowService';
 
 // Workflow types
 export interface WorkflowInstance {
@@ -68,15 +69,7 @@ export const workflowKeys = {
 export function useWorkflows(employerId: string | null, filters?: { status?: string; workflowType?: string }) {
   return useQuery({
     queryKey: workflowKeys.list(employerId!, filters),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.workflowType) params.append('workflowType', filters.workflowType);
-
-      const response = await fetch(`/api/v1/workflows?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch workflows');
-      return response.json() as Promise<{ workflows: WorkflowInstance[]; total: number }>;
-    },
+    queryFn: () => workflowService.list(employerId!, filters),
     enabled: !!employerId,
   });
 }
@@ -87,11 +80,7 @@ export function useWorkflows(employerId: string | null, filters?: { status?: str
 export function useWorkflow(id: string) {
   return useQuery({
     queryKey: workflowKeys.detail(id),
-    queryFn: async () => {
-      const response = await fetch(`/api/v1/workflows/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch workflow');
-      return response.json() as Promise<WorkflowInstance>;
-    },
+    queryFn: () => workflowService.getById(id),
     enabled: !!id,
   });
 }
@@ -103,27 +92,19 @@ export function useCreateWorkflow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
+    mutationFn: (data: {
       employerId: string;
-      workflowType: string;
-      entityType: string;
+      workflowType: 'onboarding' | 'offboarding';
+      entityType: 'employee';
       entityId: string;
-      workflowName?: string;
-    }) => {
-      const response = await fetch('/api/v1/workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to create workflow');
-      return response.json();
-    },
+      workflowName: string;
+    }) => workflowService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      toast.success('Workflow started successfully');
+      toast.success('Workflow created successfully');
     },
     onError: (error: Error) => {
-      toast.error('Failed to start workflow', {
+      toast.error('Failed to create workflow', {
         description: error.message,
       });
     },
@@ -137,30 +118,18 @@ export function useUpdateWorkflowStep() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      workflowId,
-      stepNumber,
-      status,
-    }: {
+    mutationFn: (data: {
       workflowId: string;
       stepNumber: number;
       status: 'completed' | 'failed';
-    }) => {
-      const response = await fetch(`/api/v1/workflows/${workflowId}/steps/${stepNumber}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) throw new Error('Failed to update workflow step');
-      return response.json();
-    },
+    }) => workflowService.updateStep(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: workflowKeys.detail(variables.workflowId) });
       queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      toast.success('Task updated successfully');
+      toast.success('Workflow step updated successfully');
     },
     onError: (error: Error) => {
-      toast.error('Failed to update task', {
+      toast.error('Failed to update workflow step', {
         description: error.message,
       });
     },
@@ -174,15 +143,9 @@ export function useExecuteWorkflow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (workflowId: string) => {
-      const response = await fetch(`/api/v1/workflows/${workflowId}/execute`, {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error('Failed to execute workflow');
-      return response.json();
-    },
-    onSuccess: (_, workflowId) => {
-      queryClient.invalidateQueries({ queryKey: workflowKeys.detail(workflowId) });
+    mutationFn: (data: { workflowId: string }) => workflowService.execute(data.workflowId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: workflowKeys.detail(variables.workflowId) });
       toast.success('Workflow executed successfully');
     },
     onError: (error: Error) => {
