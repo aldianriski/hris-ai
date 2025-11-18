@@ -11,6 +11,7 @@ import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireManager } from '@/lib/middleware/auth';
 import { standardRateLimit } from '@/lib/middleware/rateLimit';
 import { logLeaveAction } from '@/lib/utils/auditLog';
+import { sendLeaveApprovedEmail } from '@/lib/email/sender';
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -112,8 +113,26 @@ async function handler(
     }
   );
 
+  // Send email notification to employee
+  if (updatedRequest.employee_email) {
+    const emailResult = await sendLeaveApprovedEmail(updatedRequest.employee_email, {
+      employeeName: updatedRequest.employee_name,
+      leaveType: updatedRequest.leave_type,
+      startDate: new Date(updatedRequest.start_date).toLocaleDateString('id-ID'),
+      endDate: new Date(updatedRequest.end_date).toLocaleDateString('id-ID'),
+      days: updatedRequest.days_count,
+      approvedBy: userContext.email,
+      notes: validatedData.notes,
+      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
+    });
+
+    if (!emailResult.success) {
+      console.error('Failed to send leave approval email:', emailResult.error);
+      // Don't fail the request if email fails
+    }
+  }
+
   // TODO: Trigger leave.approved webhook
-  // TODO: Send notification to employee
 
   return successResponse(updatedRequest);
 }
