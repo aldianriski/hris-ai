@@ -147,7 +147,7 @@ export async function sendMFAEnabledEmail(
 
 /**
  * Queue email for async sending
- * TODO: Integrate with job queue system (P1.2)
+ * Uses Inngest job queue for reliable background email delivery
  */
 export async function queueEmail(
   type: string,
@@ -155,35 +155,10 @@ export async function queueEmail(
   data: any
 ): Promise<{ queued: boolean; error?: string }> {
   try {
-    // For now, send immediately
-    // This will be replaced with actual queue in P1.2
-    let result: EmailResult;
+    // Use Inngest queue for async email sending
+    const { queueEmail: queueEmailHelper } = await import('@/lib/queue/helpers');
 
-    switch (type) {
-      case 'leave-submitted':
-        result = await sendLeaveSubmittedEmail(to, data);
-        break;
-      case 'leave-approved':
-        result = await sendLeaveApprovedEmail(to, data);
-        break;
-      case 'leave-rejected':
-        result = await sendLeaveRejectedEmail(to, data);
-        break;
-      case 'payslip-ready':
-        result = await sendPayslipReadyEmail(to, data);
-        break;
-      case 'welcome':
-        result = await sendWelcomeEmail(to, data);
-        break;
-      case 'password-reset':
-        result = await sendPasswordResetEmail(to, data);
-        break;
-      case 'mfa-enabled':
-        result = await sendMFAEnabledEmail(to, data);
-        break;
-      default:
-        return { queued: false, error: 'Unknown email type' };
-    }
+    const result = await queueEmailHelper(type, to, data);
 
     return { queued: result.success, error: result.error };
   } catch (error) {
