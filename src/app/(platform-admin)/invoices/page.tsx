@@ -178,6 +178,32 @@ export default function InvoicesPage() {
     router.push(`/invoices/${invoice.id}`);
   };
 
+  // Download PDF
+  const downloadPDF = async (invoice: Invoice) => {
+    try {
+      const response = await fetch(`/api/platform/invoices/${invoice.id}/pdf`);
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoice.invoice_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
+  };
+
   // Format currency
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('id-ID', {
@@ -406,6 +432,7 @@ export default function InvoicesPage() {
                           <DropdownItem
                             key="download"
                             startContent={<Download className="w-4 h-4" />}
+                            onPress={() => downloadPDF(invoice)}
                           >
                             Download PDF
                           </DropdownItem>
