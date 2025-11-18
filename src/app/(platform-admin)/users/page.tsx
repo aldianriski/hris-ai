@@ -1,0 +1,26 @@
+import { Users as UsersIcon } from 'lucide-react';
+
+export default function UsersPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Users</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage users across all tenants
+        </p>
+      </div>
+
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Coming Soon
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+            Platform-wide user management will be available in the next update.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
