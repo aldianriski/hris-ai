@@ -7,6 +7,7 @@ import { PerformanceReview } from '@/lib/api/types';
 import { performanceService } from '@/lib/api/services';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const CATEGORY_COLOR_MAP = {
   'Exceeds Expectations': 'success',
@@ -16,16 +17,18 @@ const CATEGORY_COLOR_MAP = {
 } as const;
 
 export function PerformanceReviewList() {
+  const { employerId } = useAuth();
   const [reviews, setReviews] = useState<PerformanceReview[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!employerId) return;
+
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        // TODO: Get actual employerId from auth context
         const data = await performanceService.listReviews({
-          employerId: 'temp-employer-id',
+          employerId,
         });
         setReviews(data);
       } catch (error) {
@@ -37,7 +40,7 @@ export function PerformanceReviewList() {
     };
 
     fetchReviews();
-  }, []);
+  }, [employerId]);
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;

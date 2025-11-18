@@ -30,6 +30,7 @@ import { Employee, ListEmployeesParams } from '@/lib/api/types';
 import { employeeService } from '@/lib/api/services';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const columnHelper = createColumnHelper<Employee>();
 
@@ -60,6 +61,7 @@ interface EmployeeListTableProps {
 }
 
 export function EmployeeListTable({ searchParams }: EmployeeListTableProps) {
+  const { employerId } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -71,13 +73,14 @@ export function EmployeeListTable({ searchParams }: EmployeeListTableProps) {
 
   // Fetch employees
   useEffect(() => {
+    if (!employerId) return;
+
     const fetchEmployees = async () => {
       try {
         setLoading(true);
 
-        // TODO: Get actual employerId from auth context
         const params: ListEmployeesParams = {
-          employerId: 'temp-employer-id',
+          employerId,
           limit,
           offset,
         };
@@ -101,7 +104,7 @@ export function EmployeeListTable({ searchParams }: EmployeeListTableProps) {
     };
 
     fetchEmployees();
-  }, [searchParams, page]);
+  }, [searchParams, page, employerId]);
 
   // Define columns
   const columns = [
