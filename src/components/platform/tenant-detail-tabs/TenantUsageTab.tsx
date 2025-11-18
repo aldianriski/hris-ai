@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardBody, Spinner } from '@heroui/react';
-import { Users, Database, Zap, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Database, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@heroui/react';
+import { StorageBreakdownWidget } from '../StorageBreakdownWidget';
 
 interface TenantUsageTabProps {
   tenantId: string;
@@ -248,24 +249,12 @@ export function TenantUsageTab({ tenantId }: TenantUsageTabProps) {
         </CardBody>
       </Card>
 
-      {/* Module Usage - Placeholder */}
-      <Card>
-        <CardBody>
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Module Usage Analytics
-          </h4>
-
-          <div className="text-center py-8">
-            <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Detailed module usage analytics coming soon
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              This will show usage patterns across different HRIS modules
-            </p>
-          </div>
-        </CardBody>
-      </Card>
+      {/* Storage Breakdown */}
+      <StorageBreakdownWidget
+        tenantId={tenantId}
+        totalUsedGB={usageData.storage.current}
+        maxStorageGB={usageData.storage.max}
+      />
     </div>
   );
 }

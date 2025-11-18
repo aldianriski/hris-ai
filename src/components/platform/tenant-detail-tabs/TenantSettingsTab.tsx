@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardBody, Button, Input, Switch, Spinner } from '@heroui/react';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle, Palette } from 'lucide-react';
+import { WhiteLabelSettings } from '../WhiteLabelSettings';
 
 interface TenantSettingsTabProps {
   tenantId: string;
@@ -31,6 +32,11 @@ export function TenantSettingsTab({ tenantId }: TenantSettingsTabProps) {
     maxStorageGb: 0,
     maxApiCallsPerMonth: 0,
     featureFlags: {} as Record<string, boolean>,
+    // White-label settings
+    logoUrl: null as string | null,
+    faviconUrl: null as string | null,
+    primaryColor: '#6366f1',
+    secondaryColor: '#8b5cf6',
   });
 
   useEffect(() => {
@@ -58,6 +64,10 @@ export function TenantSettingsTab({ tenantId }: TenantSettingsTabProps) {
         maxStorageGb: tenantData.max_storage_gb || 0,
         maxApiCallsPerMonth: tenantData.max_api_calls_per_month || 0,
         featureFlags: tenantData.feature_flags || {},
+        logoUrl: tenantData.logo_url || null,
+        faviconUrl: tenantData.favicon_url || null,
+        primaryColor: tenantData.primary_color || '#6366f1',
+        secondaryColor: tenantData.secondary_color || '#8b5cf6',
       });
     } catch (err) {
       console.error('Error fetching tenant:', err);
@@ -106,6 +116,18 @@ export function TenantSettingsTab({ tenantId }: TenantSettingsTabProps) {
         ...prev.featureFlags,
         [key]: value,
       },
+    }));
+  };
+
+  const handleWhiteLabelUpdate = (settings: {
+    logoUrl?: string | null;
+    faviconUrl?: string | null;
+    primaryColor?: string;
+    secondaryColor?: string;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...settings,
     }));
   };
 
@@ -185,6 +207,31 @@ export function TenantSettingsTab({ tenantId }: TenantSettingsTabProps) {
               classNames={{ label: 'text-sm font-medium' }}
             />
           </div>
+        </CardBody>
+      </Card>
+
+      {/* White-Label Branding */}
+      <Card>
+        <CardBody>
+          <div className="flex items-center gap-2 mb-6">
+            <Palette className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              White-Label Branding
+            </h3>
+          </div>
+
+          <WhiteLabelSettings
+            tenantId={tenantId}
+            currentSettings={{
+              logoUrl: formData.logoUrl,
+              faviconUrl: formData.faviconUrl,
+              primaryColor: formData.primaryColor,
+              secondaryColor: formData.secondaryColor,
+              customDomain: formData.customDomain,
+            }}
+            onUpdate={handleWhiteLabelUpdate}
+            disabled={saving}
+          />
         </CardBody>
       </Card>
 

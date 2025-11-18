@@ -22,6 +22,11 @@ const updateTenantSchema = z.object({
   customDomain: z.string().nullable().optional(),
   featureFlags: z.record(z.boolean()).optional(),
   settings: z.record(z.any()).optional(),
+  // White-label branding
+  logoUrl: z.string().nullable().optional(),
+  faviconUrl: z.string().nullable().optional(),
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
 });
 
 interface RouteParams {
@@ -141,6 +146,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (validatedData.customDomain !== undefined) updateData.custom_domain = validatedData.customDomain;
     if (validatedData.featureFlags) updateData.feature_flags = validatedData.featureFlags;
     if (validatedData.settings) updateData.settings = validatedData.settings;
+    // White-label branding
+    if (validatedData.logoUrl !== undefined) updateData.logo_url = validatedData.logoUrl;
+    if (validatedData.faviconUrl !== undefined) updateData.favicon_url = validatedData.faviconUrl;
+    if (validatedData.primaryColor) updateData.primary_color = validatedData.primaryColor;
+    if (validatedData.secondaryColor) updateData.secondary_color = validatedData.secondaryColor;
     updateData.updated_at = new Date().toISOString();
 
     const { data: tenant, error: updateError } = await supabase
