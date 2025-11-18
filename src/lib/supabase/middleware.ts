@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes
-  const protectedPaths = ['/hr', '/admin', '/my-'];
+  const protectedPaths = ['/hr', '/admin', '/my-', '/platform-admin'];
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );
@@ -50,6 +50,26 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/auth/login';
     url.searchParams.set('redirectTo', request.nextUrl.pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Platform admin routes require special RBAC check
+  if (request.nextUrl.pathname.startsWith('/platform-admin') && user) {
+    // Check if user has platform admin role
+    const { data: platformUser } = await supabase
+      .from('platform_users')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const platformAdminRoles = ['super_admin', 'platform_admin', 'support_admin', 'billing_admin'];
+    const hasAccess = platformUser && platformAdminRoles.includes(platformUser.role);
+
+    if (!hasAccess) {
+      // Redirect to unauthorized page
+      const url = request.nextUrl.clone();
+      url.pathname = '/unauthorized';
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
