@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Card, CardBody, Tabs, Tab, Button, Chip } from '@heroui/react';
+import { Card, CardBody, Tabs, Tab, Button, Chip, Spinner } from '@heroui/react';
 import {
   ArrowLeft,
   Building2,
@@ -67,9 +67,52 @@ const planBadgeColors = {
 
 export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [tenant, setTenant] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // TODO: Fetch tenant data from API
-  const tenant = mockTenant;
+  useEffect(() => {
+    async function fetchTenant() {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/platform/tenants/${tenantId}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch tenant');
+        }
+
+        const data = await response.json();
+        setTenant(data.tenant);
+      } catch (err) {
+        console.error('Error fetching tenant:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch tenant');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTenant();
+  }, [tenantId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error || !tenant) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="text-center py-8">
+            <p className="text-red-500">{error || 'Tenant not found'}</p>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -93,26 +136,28 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {tenant.companyName}
+                {tenant.company_name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {tenant.slug}
+                  {tenant.slug || tenant.id.substring(0, 8)}
                 </span>
                 <Chip
                   size="sm"
-                  color={statusColors[tenant.subscriptionStatus as keyof typeof statusColors]}
+                  color={statusColors[tenant.status as keyof typeof statusColors]}
                   variant="flat"
                 >
-                  {tenant.subscriptionStatus}
+                  {tenant.status}
                 </Chip>
-                <Chip
-                  size="sm"
-                  color={planBadgeColors[tenant.subscriptionPlan as keyof typeof planBadgeColors]}
-                  variant="flat"
-                >
-                  {tenant.subscriptionPlan}
-                </Chip>
+                {tenant.subscriptions && tenant.subscriptions[0] && (
+                  <Chip
+                    size="sm"
+                    color={planBadgeColors[tenant.subscriptions[0].plan_id as keyof typeof planBadgeColors]}
+                    variant="flat"
+                  >
+                    {tenant.subscriptions[0].plan_id}
+                  </Chip>
+                )}
               </div>
             </div>
           </div>

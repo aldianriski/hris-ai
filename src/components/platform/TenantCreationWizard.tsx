@@ -72,17 +72,31 @@ export function TenantCreationWizard() {
     setIsSubmitting(true);
 
     try {
-      // TODO: API call to create tenant
-      console.log('Creating tenant with data:', formData);
+      const response = await fetch('/api/platform/tenants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const result = await response.json();
 
-      // Redirect to tenant list
-      router.push('/(platform-admin)/tenants');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create tenant');
+      }
+
+      // Show success message with temp password
+      console.log('Tenant created successfully:', result);
+      if (result.tempPassword) {
+        alert(`Tenant created successfully!\n\nAdmin Email: ${result.adminEmail}\nTemporary Password: ${result.tempPassword}\n\nPlease save this password - it won't be shown again.`);
+      }
+
+      // Redirect to tenant detail page
+      router.push(`/platform-admin/tenants/${result.tenant.id}`);
     } catch (error) {
       console.error('Error creating tenant:', error);
-      alert('Failed to create tenant. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to create tenant. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -12,6 +12,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Spinner,
 } from '@heroui/react';
 import {
   Search,
@@ -95,19 +96,46 @@ export function TenantListTable() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [planFilter, setPlanFilter] = useState<string>('all');
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filter tenants
-  const filteredTenants = mockTenants.filter((tenant) => {
-    const matchesSearch =
-      tenant.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.primaryAdmin.email.toLowerCase().includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    async function fetchTenants() {
+      try {
+        setLoading(true);
 
-    const matchesStatus = statusFilter === 'all' || tenant.subscriptionStatus === statusFilter;
-    const matchesPlan = planFilter === 'all' || tenant.subscriptionPlan === planFilter;
+        // Build query params
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (planFilter !== 'all') params.append('plan', planFilter);
 
-    return matchesSearch && matchesStatus && matchesPlan;
-  });
+        const response = await fetch(`/api/platform/tenants?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch tenants');
+        }
+
+        const result = await response.json();
+        setTenants(result.data || []);
+      } catch (err) {
+        console.error('Error fetching tenants:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch tenants');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      fetchTenants();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, statusFilter, planFilter]);
+
+  const filteredTenants = tenants;
 
   return (
     <div className="space-y-4">
