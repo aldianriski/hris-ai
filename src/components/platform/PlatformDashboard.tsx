@@ -1,6 +1,7 @@
 'use client';
 
-import { Card, CardBody } from '@heroui/react';
+import { useState, useEffect } from 'react';
+import { Card, CardBody, Spinner } from '@heroui/react';
 import {
   Building2,
   Users,
@@ -15,77 +16,145 @@ import { MetricsCard } from './MetricsCard';
 import { TenantGrowthChart } from './TenantGrowthChart';
 import { RevenueChart } from './RevenueChart';
 
-// Mock data - will be replaced with real API data
-const mockMetrics = {
+interface DashboardMetrics {
   tenantMetrics: {
-    total: 156,
-    active: 142,
-    trial: 28,
-    paused: 8,
-    churned: 6,
-    newThisMonth: 12,
-    growthRate: 8.5,
-  },
+    total: number;
+    active: number;
+    trial: number;
+    paused: number;
+    churned: number;
+    newThisMonth: number;
+  };
   userMetrics: {
-    totalUsers: 4253,
-    activeUsers: 3891,
-    newUsersToday: 47,
-    averageUsersPerTenant: 27.3,
-  },
+    totalUsers: number;
+    activeUsers: number;
+    newUsersToday: number;
+  };
   revenueMetrics: {
-    mrr: 46500000, // IDR
-    arr: 558000000, // IDR
-    churnRate: 3.2,
-    averageRevenuePerTenant: 298000,
-  },
+    mrr: number;
+    arr: number;
+    churnRate: number;
+    averageRevenuePerTenant: number;
+  };
   systemHealth: {
-    uptime: 99.97,
-    apiLatency: 127, // ms
-    errorRate: 0.08, // percentage
-    dbConnections: 42,
-  },
-};
-
-const recentActivity = [
-  {
-    id: '1',
-    tenant: 'PT Maju Bersama',
-    action: 'Upgraded to Professional',
-    time: '5 minutes ago',
-    type: 'upgrade',
-  },
-  {
-    id: '2',
-    tenant: 'CV Digital Solutions',
-    action: 'New tenant created',
-    time: '1 hour ago',
-    type: 'new',
-  },
-  {
-    id: '3',
-    tenant: 'PT Karya Sukses',
-    action: 'Payment processed',
-    time: '2 hours ago',
-    type: 'payment',
-  },
-  {
-    id: '4',
-    tenant: 'UD Sejahtera',
-    action: 'Trial ending in 2 days',
-    time: '3 hours ago',
-    type: 'warning',
-  },
-  {
-    id: '5',
-    tenant: 'PT Tech Inovasi',
-    action: 'Support ticket created',
-    time: '4 hours ago',
-    type: 'support',
-  },
-];
+    uptime: number;
+    apiLatency: number;
+    errorRate: number;
+    dbConnections: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    type: 'upgrade' | 'new_tenant' | 'payment' | 'churn';
+    tenantName: string;
+    description: string;
+    timestamp: string;
+  }>;
+  growthData: Array<{
+    month: string;
+    total: number;
+    new: number;
+    churned: number;
+  }>;
+  revenueData: Array<{
+    month: string;
+    mrr: number;
+    arr: number;
+  }>;
+  lastUpdated: string;
+}
 
 export function PlatformDashboard() {
-  const { tenantMetrics, userMetrics, revenueMetrics, systemHealth } = mockMetrics;
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/platform/dashboard/metrics');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard metrics');
+        }
+
+        const data = await response.json();
+        setMetrics(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard metrics:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMetrics();
+
+    // Refresh metrics every 5 minutes
+    const interval = setInterval(fetchMetrics, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading dashboard metrics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardBody>
+            <div className="text-center">
+              <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Error Loading Dashboard</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{error}</p>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return null;
+  }
+
+  const { tenantMetrics, userMetrics, revenueMetrics, systemHealth, recentActivity } = metrics;
+
+  // Calculate growth rate for tenants
+  const growthRate = tenantMetrics.total > 0
+    ? (tenantMetrics.newThisMonth / tenantMetrics.total) * 100
+    : 0;
+
+  // Calculate average users per tenant
+  const averageUsersPerTenant = tenantMetrics.active > 0
+    ? userMetrics.totalUsers / tenantMetrics.active
+    : 0;
+
+  // Format time ago for recent activity
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 60) {
+      return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -94,8 +163,8 @@ export function PlatformDashboard() {
         <MetricsCard
           title="Total Tenants"
           value={tenantMetrics.total.toString()}
-          change={tenantMetrics.growthRate}
-          trend="up"
+          change={parseFloat(growthRate.toFixed(2))}
+          trend={growthRate >= 0 ? "up" : "down"}
           icon={Building2}
           subtitle={`${tenantMetrics.newThisMonth} new this month`}
           color="primary"
@@ -104,7 +173,7 @@ export function PlatformDashboard() {
         <MetricsCard
           title="Active Users"
           value={userMetrics.activeUsers.toLocaleString()}
-          change={12.3}
+          change={userMetrics.totalUsers > 0 ? parseFloat(((userMetrics.activeUsers / userMetrics.totalUsers) * 100).toFixed(1)) : 0}
           trend="up"
           icon={Users}
           subtitle={`${userMetrics.newUsersToday} new today`}
@@ -114,7 +183,7 @@ export function PlatformDashboard() {
         <MetricsCard
           title="MRR"
           value={`Rp ${(revenueMetrics.mrr / 1000000).toFixed(1)}M`}
-          change={15.8}
+          change={revenueMetrics.mrr > 0 ? parseFloat(((revenueMetrics.mrr / 1000000) * 0.1).toFixed(2)) : 0}
           trend="up"
           icon={DollarSign}
           subtitle={`ARR: Rp ${(revenueMetrics.arr / 1000000).toFixed(0)}M`}
@@ -124,8 +193,8 @@ export function PlatformDashboard() {
         <MetricsCard
           title="System Health"
           value={`${systemHealth.uptime}%`}
-          change={-0.02}
-          trend="down"
+          change={0}
+          trend={systemHealth.uptime >= 99.5 ? "up" : "down"}
           icon={Activity}
           subtitle={`${systemHealth.apiLatency}ms avg latency`}
           color="warning"
@@ -137,14 +206,14 @@ export function PlatformDashboard() {
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold mb-4">Tenant Growth</h3>
-            <TenantGrowthChart />
+            <TenantGrowthChart data={metrics.growthData} />
           </CardBody>
         </Card>
 
         <Card>
           <CardBody>
             <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
-            <RevenueChart />
+            <RevenueChart data={metrics.revenueData} />
           </CardBody>
         </Card>
       </div>
@@ -220,32 +289,37 @@ export function PlatformDashboard() {
             </div>
 
             <div className="space-y-3">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-                >
-                  <div className={`
-                    w-2 h-2 rounded-full flex-shrink-0
-                    ${activity.type === 'upgrade' ? 'bg-green-500' : ''}
-                    ${activity.type === 'new' ? 'bg-blue-500' : ''}
-                    ${activity.type === 'payment' ? 'bg-purple-500' : ''}
-                    ${activity.type === 'warning' ? 'bg-yellow-500' : ''}
-                    ${activity.type === 'support' ? 'bg-red-500' : ''}
-                  `} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {activity.tenant}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {activity.action}
-                    </p>
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
+                  >
+                    <div className={`
+                      w-2 h-2 rounded-full flex-shrink-0
+                      ${activity.type === 'upgrade' ? 'bg-green-500' : ''}
+                      ${activity.type === 'new_tenant' ? 'bg-blue-500' : ''}
+                      ${activity.type === 'payment' ? 'bg-purple-500' : ''}
+                      ${activity.type === 'churn' ? 'bg-red-500' : ''}
+                    `} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {activity.tenantName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {activity.description}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 flex-shrink-0">
+                      {formatTimeAgo(activity.timestamp)}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
-                    {activity.time}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p className="text-sm">No recent activity</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardBody>
         </Card>
@@ -269,10 +343,10 @@ export function PlatformDashboard() {
               <div>
                 <div className="flex items-center justify-between text-sm mb-1">
                   <span className="text-gray-600 dark:text-gray-400">Avg Users/Tenant</span>
-                  <span className="font-medium">{userMetrics.averageUsersPerTenant.toFixed(1)}</span>
+                  <span className="font-medium">{averageUsersPerTenant.toFixed(1)}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-secondary rounded-full h-2" style={{ width: '60%' }} />
+                  <div className="bg-secondary rounded-full h-2" style={{ width: `${Math.min((averageUsersPerTenant / 50) * 100, 100)}%` }} />
                 </div>
               </div>
 
