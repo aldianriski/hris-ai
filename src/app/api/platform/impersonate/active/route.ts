@@ -59,20 +59,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Type assertion: Supabase foreign key relations return objects, not arrays
+    const targetUser = session.target_user as any;
+    const tenant = session.tenant as any;
+
     return NextResponse.json({
       isImpersonating: true,
       session: {
         id: session.id,
         targetUser: {
-          id: session.target_user?.id,
-          email: session.target_user?.email,
-          full_name: session.target_user?.full_name,
-          role: session.target_user?.role || 'employee',
+          id: targetUser?.id,
+          email: targetUser?.email,
+          full_name: targetUser?.full_name,
+          role: targetUser?.role || 'employee',
         },
         tenant: {
-          id: session.tenant?.id,
-          company_name: session.tenant?.company_name,
-          slug: session.tenant?.slug,
+          id: tenant?.id,
+          company_name: tenant?.company_name,
+          slug: tenant?.slug,
         },
         startedAt: session.started_at,
         expiresAt: session.expires_at,

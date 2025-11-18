@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireManager } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logLeaveAction } from '@/lib/utils/auditLog';
 
 const rejectSchema = z.object({
@@ -20,7 +20,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only managers and above can reject leave
   const userContext = await requireManager(request);

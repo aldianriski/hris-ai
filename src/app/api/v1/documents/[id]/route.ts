@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, requireHR } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logDocumentAction } from '@/lib/utils/auditLog';
 
 // ============================================
@@ -22,7 +22,7 @@ async function getHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { id } = params;
@@ -72,7 +72,7 @@ async function updateHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { id } = params;
@@ -164,7 +164,7 @@ async function deleteHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only HR and above can delete documents
   const userContext = await requireHR(request);

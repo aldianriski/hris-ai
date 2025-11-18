@@ -369,7 +369,7 @@ export default function EmployeeDocumentsPage() {
             <div className="space-y-4">
               <Select label="Document Type" placeholder="Select document type">
                 {documentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value}>
                     {type.label}
                   </SelectItem>
                 ))}

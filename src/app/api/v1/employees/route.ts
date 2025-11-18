@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, requireHR } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { PaginationSchema } from '@/lib/api/types';
 import { logEmployeeAction } from '@/lib/utils/auditLog';
 import { getCached, employeeListKey, invalidateEmployeeCache, CacheTTL } from '@/lib/cache';
@@ -29,7 +29,7 @@ const listEmployeesSchema = z.object({
 });
 
 async function listHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 
@@ -148,7 +148,7 @@ const createEmployeeSchema = z.object({
 });
 
 async function createHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only HR can create employees
   const userContext = await requireHR(request);

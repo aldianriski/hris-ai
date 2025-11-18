@@ -89,7 +89,7 @@ export function EmployeeBasicInfo() {
         errorMessage={errors.gender?.message}
       >
         {GENDERS.map((gender) => (
-          <SelectItem key={gender.value} value={gender.value}>
+          <SelectItem key={gender.value}>
             {gender.label}
           </SelectItem>
         ))}
@@ -105,7 +105,7 @@ export function EmployeeBasicInfo() {
         errorMessage={errors.maritalStatus?.message}
       >
         {MARITAL_STATUS.map((status) => (
-          <SelectItem key={status.value} value={status.value}>
+          <SelectItem key={status.value}>
             {status.label}
           </SelectItem>
         ))}

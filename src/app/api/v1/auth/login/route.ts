@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
-import { authRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logSecurityEvent, createUserSession } from '@/lib/utils/auditLog';
 
 const loginSchema = z.object({
@@ -18,7 +18,7 @@ const loginSchema = z.object({
 
 async function handler(request: NextRequest) {
   // Apply rate limiting
-  await authRateLimit(request);
+  await withRateLimit(request);
 
   // Parse and validate request body
   const body = await request.json();

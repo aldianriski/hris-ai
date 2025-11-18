@@ -37,7 +37,7 @@ export function EmployeeBPJS() {
               onChange={(e) => setValue('bpjsKesehatanStatus', e.target.value as any)}
             >
               {BPJS_STATUS.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
+                <SelectItem key={status.value}>
                   {status.label}
                 </SelectItem>
               ))}
@@ -75,7 +75,7 @@ export function EmployeeBPJS() {
               onChange={(e) => setValue('bpjsKetenagakerjaanStatus', e.target.value as any)}
             >
               {BPJS_STATUS.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
+                <SelectItem key={status.value}>
                   {status.label}
                 </SelectItem>
               ))}

@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, requireAdmin } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { PaginationSchema } from '@/lib/api/types';
 
 // ============================================
@@ -24,7 +24,7 @@ const listWorkflowsSchema = z.object({
 });
 
 async function listHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 
@@ -103,7 +103,7 @@ const createWorkflowSchema = z.object({
 });
 
 async function createHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only admins can create workflows
   const userContext = await requireAdmin(request);

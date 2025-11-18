@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, requireAdmin } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 // ============================================
 // GET /api/v1/webhooks/:id - Get webhook details
@@ -21,7 +21,7 @@ async function getHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { id } = params;
@@ -72,7 +72,7 @@ async function updateHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only admins can update webhooks
   const userContext = await requireAdmin(request);
@@ -136,7 +136,7 @@ async function deleteHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only admins can delete webhooks
   const userContext = await requireAdmin(request);

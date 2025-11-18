@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler, ApiError } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { PaginationSchema } from '@/lib/api/types';
 import { logLeaveAction } from '@/lib/utils/auditLog';
 
@@ -27,7 +27,7 @@ const listLeaveSchema = z.object({
 });
 
 async function listHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 
@@ -108,7 +108,7 @@ const createLeaveSchema = z.object({
 });
 
 async function createHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 

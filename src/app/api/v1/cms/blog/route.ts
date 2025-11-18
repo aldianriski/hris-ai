@@ -9,7 +9,7 @@ import type { CreateBlogPostInput } from '@/lib/db/cms-schema';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const searchParams = request.nextUrl.searchParams;
 
     const filters = {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // TODO: Add auth check for admin/content_manager role
     const { data: { user } } = await supabase.auth.getUser();

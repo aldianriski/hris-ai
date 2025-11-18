@@ -141,6 +141,15 @@ export class Employee {
   }
 
   /**
+   * Get number of dependents from PTKP status
+   */
+  get numberOfDependents(): number {
+    // PTKP status format: TK/0, K/1, etc.
+    const match = this.ptkpStatus.match(/\/(\d)/);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  /**
    * Create a copy with updated fields
    */
   update(updates: Partial<Omit<Employee, 'id' | 'employerId' | 'employeeNumber' | 'createdAt' | 'validate' | 'isValidEmail' | 'totalGrossSalary' | 'taxableIncome' | 'isActive' | 'isOnProbation' | 'yearsOfService' | 'update'>>): Employee {

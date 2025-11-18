@@ -136,7 +136,7 @@ export function CreateTicketModal({
             isRequired
           >
             {tenants.map((tenant) => (
-              <SelectItem key={tenant.id} value={tenant.id}>
+              <SelectItem key={tenant.id}>
                 {tenant.name}
               </SelectItem>
             ))}
@@ -165,10 +165,10 @@ export function CreateTicketModal({
               selectedKeys={[formData.priority]}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
             >
-              <SelectItem key="low" value="low">Low</SelectItem>
-              <SelectItem key="medium" value="medium">Medium</SelectItem>
-              <SelectItem key="high" value="high">High</SelectItem>
-              <SelectItem key="urgent" value="urgent">Urgent</SelectItem>
+              <SelectItem key="low">Low</SelectItem>
+              <SelectItem key="medium">Medium</SelectItem>
+              <SelectItem key="high">High</SelectItem>
+              <SelectItem key="urgent">Urgent</SelectItem>
             </Select>
 
             <Input

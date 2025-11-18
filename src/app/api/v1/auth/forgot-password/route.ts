@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { successResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
-import { strictRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -16,7 +16,7 @@ const forgotPasswordSchema = z.object({
 
 async function handler(request: NextRequest) {
   // Apply strict rate limiting
-  await strictRateLimit(request);
+  await withRateLimit(request);
 
   // Parse and validate request body
   const body = await request.json();

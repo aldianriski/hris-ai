@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireHR } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const payrollAnalyticsSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -17,7 +17,7 @@ const payrollAnalyticsSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only HR and above can access payroll analytics
   const userContext = await requireHR(request);

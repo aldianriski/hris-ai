@@ -24,7 +24,7 @@ export async function safeSupabaseQuery<T>(
       return { data: fallback ?? null, error: new Error('Supabase not configured') };
     }
 
-    const client = createClient();
+    const client = await createClient();
     const data = await queryFn(client);
 
     return { data, error: null };
@@ -43,7 +43,7 @@ export async function safeSupabaseQuery<T>(
  */
 export async function safeGetUser() {
   try {
-    const client = createClient();
+    const client = await createClient();
     const { data, error } = await client.auth.getUser();
 
     if (error) {
@@ -64,7 +64,7 @@ export async function safeGetUser() {
  */
 export async function safeGetSession() {
   try {
-    const client = createClient();
+    const client = await createClient();
     const { data, error } = await client.auth.getSession();
 
     if (error) {

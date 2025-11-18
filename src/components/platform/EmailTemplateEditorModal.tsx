@@ -137,13 +137,13 @@ export function EmailTemplateEditorModal({
                 isRequired
                 isDisabled={saving}
               >
-                <SelectItem key="transactional" value="transactional">
+                <SelectItem key="transactional">
                   Transactional
                 </SelectItem>
-                <SelectItem key="marketing" value="marketing">
+                <SelectItem key="marketing">
                   Marketing
                 </SelectItem>
-                <SelectItem key="billing" value="billing">
+                <SelectItem key="billing">
                   Billing
                 </SelectItem>
               </Select>

@@ -8,18 +8,18 @@ import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { getCached, dashboardKey, CacheTTL } from '@/lib/cache';
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 
   try {
     // Use cache for dashboard analytics (5 min TTL)
     const analytics = await getCached(
-      dashboardKey(userContext.companyId, userContext.userId),
+      dashboardKey(userContext.companyId, userContext.id),
       async () => {
         const supabase = await createClient();
     // Get total employees

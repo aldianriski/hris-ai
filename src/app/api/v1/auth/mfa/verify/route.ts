@@ -11,7 +11,7 @@ import crypto from 'crypto';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { mfaRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logSecurityEvent } from '@/lib/utils/auditLog';
 
 const verifySchema = z.object({
@@ -21,7 +21,7 @@ const verifySchema = z.object({
 
 async function handler(request: NextRequest) {
   // Apply MFA rate limiting
-  await mfaRateLimit(request);
+  await withRateLimit(request);
 
   // Require authentication
   const userContext = await requireAuth(request);

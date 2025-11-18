@@ -138,7 +138,7 @@ export function EditPlatformUserModal({
               startContent={<Shield className="w-4 h-4 text-gray-400" />}
             >
               {platformRoles.map((role) => (
-                <SelectItem key={role} value={role}>
+                <SelectItem key={role}>
                   {getRoleDisplayName(role)}
                 </SelectItem>
               ))}

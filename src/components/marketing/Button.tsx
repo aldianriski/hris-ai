@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 
 // Button variants using CVA for type-safe styling
 const buttonVariants = cva(

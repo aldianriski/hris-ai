@@ -88,23 +88,28 @@ export async function GET(request: NextRequest) {
           duration = `${hours}h ${minutes}m ${seconds}s`;
         }
 
+        // Type assertion: Supabase foreign key relations return objects, not arrays
+        const platformAdmin = session.platform_admin as any;
+        const targetUser = session.target_user as any;
+        const tenant = session.tenant as any;
+
         return {
           id: session.id,
           platformAdmin: {
-            id: session.platform_admin?.id,
-            full_name: session.platform_admin?.full_name,
-            email: session.platform_admin?.email,
+            id: platformAdmin?.id,
+            full_name: platformAdmin?.full_name,
+            email: platformAdmin?.email,
           },
           targetUser: {
-            id: session.target_user?.id,
-            full_name: session.target_user?.full_name,
-            email: session.target_user?.email,
-            role: session.target_user?.role || 'employee',
+            id: targetUser?.id,
+            full_name: targetUser?.full_name,
+            email: targetUser?.email,
+            role: targetUser?.role || 'employee',
           },
           tenant: {
-            id: session.tenant?.id,
-            company_name: session.tenant?.company_name,
-            slug: session.tenant?.slug,
+            id: tenant?.id,
+            company_name: tenant?.company_name,
+            slug: tenant?.slug,
           },
           reason: session.reason,
           status: session.status,

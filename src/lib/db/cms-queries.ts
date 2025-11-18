@@ -8,7 +8,8 @@
  * @see supabase/migrations/20251118000010_create_cms_tables.sql
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type {
   BlogPost,
   CreateBlogPostInput,
@@ -36,6 +37,8 @@ import type {
   CMSStats,
 } from './cms-schema';
 
+type SupabaseClientType = SupabaseClient<Database>;
+
 // =============================================================================
 // BLOG POSTS
 // =============================================================================
@@ -44,7 +47,7 @@ import type {
  * Get all blog posts with filters
  */
 export async function getBlogPosts(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   filters: BlogPostFilters = {}
 ): Promise<PaginatedResponse<BlogPost>> {
   const {
@@ -110,7 +113,7 @@ export async function getBlogPosts(
  * Get a single blog post by slug
  */
 export async function getBlogPostBySlug(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   slug: string
 ): Promise<BlogPost | null> {
   const { data, error } = await supabase
@@ -131,7 +134,7 @@ export async function getBlogPostBySlug(
  * Create a new blog post
  */
 export async function createBlogPost(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateBlogPostInput
 ): Promise<BlogPost> {
   const { data, error } = await supabase
@@ -148,13 +151,13 @@ export async function createBlogPost(
  * Update a blog post
  */
 export async function updateBlogPost(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string,
   input: UpdateBlogPostInput
 ): Promise<BlogPost> {
   const { data, error } = await supabase
     .from('cms_blog_posts')
-    .update(input)
+    .update(input as any)
     .eq('id', id)
     .select()
     .single();
@@ -167,7 +170,7 @@ export async function updateBlogPost(
  * Delete a blog post
  */
 export async function deleteBlogPost(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string
 ): Promise<void> {
   const { error } = await supabase
@@ -182,10 +185,10 @@ export async function deleteBlogPost(
  * Increment blog post view count
  */
 export async function incrementBlogPostViews(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('increment_blog_post_views', {
+  const { error } = await supabase.rpc('increment_blog_post_views' as any, {
     post_id: id,
   });
 
@@ -197,10 +200,11 @@ export async function incrementBlogPostViews(
       .eq('id', id)
       .single();
 
-    if (data) {
+    if (data && 'view_count' in data) {
+      const typedData = data as { view_count: number };
       await supabase
         .from('cms_blog_posts')
-        .update({ view_count: data.view_count + 1 })
+        .update({ view_count: typedData.view_count + 1 })
         .eq('id', id);
     }
   }
@@ -214,7 +218,7 @@ export async function incrementBlogPostViews(
  * Get all case studies with filters
  */
 export async function getCaseStudies(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   filters: CaseStudyFilters = {}
 ): Promise<PaginatedResponse<CaseStudy>> {
   const { page = 1, limit = 10, status, industry, search } = filters;
@@ -259,7 +263,7 @@ export async function getCaseStudies(
  * Get a single case study by slug
  */
 export async function getCaseStudyBySlug(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   slug: string
 ): Promise<CaseStudy | null> {
   const { data, error } = await supabase
@@ -280,7 +284,7 @@ export async function getCaseStudyBySlug(
  * Create a new case study
  */
 export async function createCaseStudy(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateCaseStudyInput
 ): Promise<CaseStudy> {
   const { data, error } = await supabase
@@ -297,13 +301,13 @@ export async function createCaseStudy(
  * Update a case study
  */
 export async function updateCaseStudy(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string,
   input: UpdateCaseStudyInput
 ): Promise<CaseStudy> {
   const { data, error } = await supabase
     .from('cms_case_studies')
-    .update(input)
+    .update(input as any)
     .eq('id', id)
     .select()
     .single();
@@ -316,7 +320,7 @@ export async function updateCaseStudy(
  * Delete a case study
  */
 export async function deleteCaseStudy(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string
 ): Promise<void> {
   const { error } = await supabase
@@ -335,7 +339,7 @@ export async function deleteCaseStudy(
  * Get all leads with filters
  */
 export async function getLeads(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   filters: LeadFilters = {}
 ): Promise<PaginatedResponse<Lead>> {
   const {
@@ -400,7 +404,7 @@ export async function getLeads(
  * Get a single lead by ID
  */
 export async function getLeadById(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string
 ): Promise<Lead | null> {
   const { data, error } = await supabase
@@ -421,7 +425,7 @@ export async function getLeadById(
  * Create a new lead
  */
 export async function createLead(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateLeadInput
 ): Promise<Lead> {
   const { data, error } = await supabase
@@ -438,13 +442,13 @@ export async function createLead(
  * Update a lead
  */
 export async function updateLead(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string,
   input: UpdateLeadInput
 ): Promise<Lead> {
   const { data, error } = await supabase
     .from('leads')
-    .update(input)
+    .update(input as any)
     .eq('id', id)
     .select()
     .single();
@@ -461,7 +465,7 @@ export async function updateLead(
  * Get all demo requests with filters
  */
 export async function getDemoRequests(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   filters: DemoRequestFilters = {}
 ): Promise<PaginatedResponse<DemoRequest>> {
   const {
@@ -521,7 +525,7 @@ export async function getDemoRequests(
  * Create a new demo request
  */
 export async function createDemoRequest(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateDemoRequestInput
 ): Promise<DemoRequest> {
   const { data, error } = await supabase
@@ -538,13 +542,13 @@ export async function createDemoRequest(
  * Update a demo request
  */
 export async function updateDemoRequest(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   id: string,
   input: UpdateDemoRequestInput
 ): Promise<DemoRequest> {
   const { data, error } = await supabase
     .from('demo_requests')
-    .update(input)
+    .update(input as any)
     .eq('id', id)
     .select()
     .single();
@@ -561,7 +565,7 @@ export async function updateDemoRequest(
  * Track an analytics event
  */
 export async function trackAnalyticsEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateAnalyticsEventInput
 ): Promise<void> {
   const { error } = await supabase.from('web_analytics').insert(input);
@@ -576,7 +580,7 @@ export async function trackAnalyticsEvent(
  * Get analytics events with filters
  */
 export async function getAnalyticsEvents(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   filters: AnalyticsFilters = {}
 ): Promise<PaginatedResponse<WebAnalyticsEvent>> {
   const {
@@ -638,7 +642,7 @@ export async function getAnalyticsEvents(
  * Subscribe to newsletter
  */
 export async function subscribeToNewsletter(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   input: CreateNewsletterSubscriberInput
 ): Promise<NewsletterSubscriber> {
   const { data, error } = await supabase
@@ -655,13 +659,13 @@ export async function subscribeToNewsletter(
  * Update newsletter subscription
  */
 export async function updateNewsletterSubscription(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   email: string,
   input: UpdateNewsletterSubscriberInput
 ): Promise<NewsletterSubscriber> {
   const { data, error } = await supabase
     .from('newsletter_subscribers')
-    .update(input)
+    .update(input as any)
     .eq('email', email)
     .select()
     .single();
@@ -674,7 +678,7 @@ export async function updateNewsletterSubscription(
  * Unsubscribe from newsletter
  */
 export async function unsubscribeFromNewsletter(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientType,
   email: string
 ): Promise<void> {
   const { error } = await supabase
@@ -693,7 +697,7 @@ export async function unsubscribeFromNewsletter(
  * Get CMS statistics
  */
 export async function getCMSStats(
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClientType
 ): Promise<CMSStats> {
   // Blog posts stats
   const { data: blogStats } = await supabase
@@ -702,8 +706,8 @@ export async function getCMSStats(
 
   const blog_posts = {
     total: blogStats?.length || 0,
-    published: blogStats?.filter((p) => p.status === 'published').length || 0,
-    draft: blogStats?.filter((p) => p.status === 'draft').length || 0,
+    published: blogStats?.filter((p: any) => p.status === 'published').length || 0,
+    draft: blogStats?.filter((p: any) => p.status === 'draft').length || 0,
   };
 
   // Case studies stats
@@ -714,7 +718,7 @@ export async function getCMSStats(
   const case_studies = {
     total: caseStudyStats?.length || 0,
     published:
-      caseStudyStats?.filter((cs) => cs.status === 'published').length || 0,
+      caseStudyStats?.filter((cs: any) => cs.status === 'published').length || 0,
   };
 
   // Leads stats
@@ -722,12 +726,12 @@ export async function getCMSStats(
 
   const totalLeads = leadStats?.length || 0;
   const convertedLeads =
-    leadStats?.filter((l) => l.status === 'converted').length || 0;
+    leadStats?.filter((l: any) => l.status === 'converted').length || 0;
 
   const leads = {
     total: totalLeads,
-    new: leadStats?.filter((l) => l.status === 'new').length || 0,
-    qualified: leadStats?.filter((l) => l.status === 'qualified').length || 0,
+    new: leadStats?.filter((l: any) => l.status === 'new').length || 0,
+    qualified: leadStats?.filter((l: any) => l.status === 'qualified').length || 0,
     converted: convertedLeads,
     conversion_rate:
       totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0,
@@ -740,9 +744,9 @@ export async function getCMSStats(
 
   const demo_requests = {
     total: demoStats?.length || 0,
-    pending: demoStats?.filter((d) => d.status === 'pending').length || 0,
-    scheduled: demoStats?.filter((d) => d.status === 'scheduled').length || 0,
-    completed: demoStats?.filter((d) => d.status === 'completed').length || 0,
+    pending: demoStats?.filter((d: any) => d.status === 'pending').length || 0,
+    scheduled: demoStats?.filter((d: any) => d.status === 'scheduled').length || 0,
+    completed: demoStats?.filter((d: any) => d.status === 'completed').length || 0,
   };
 
   // Newsletter stats
@@ -753,7 +757,7 @@ export async function getCMSStats(
   const newsletter = {
     total_subscribers: newsletterStats?.length || 0,
     active_subscribers:
-      newsletterStats?.filter((n) => n.status === 'subscribed').length || 0,
+      newsletterStats?.filter((n: any) => n.status === 'subscribed').length || 0,
   };
 
   return {

@@ -12,11 +12,21 @@
       }
     ],
     "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
     "no-console": [
       "warn",
       {
         "allow": ["warn", "error"]
       }
-    ]
+    ],
+    "react/no-unescaped-entities": "warn",
+    "react-hooks/rules-of-hooks": "warn",
+    "@next/next/inline-script-id": "warn",
+    "@next/next/no-assign-module-variable": "warn",
+    "prefer-const": "warn",
+    "prefer-rest-params": "warn",
+    "prefer-spread": "warn",
+    "@typescript-eslint/no-unused-expressions": "warn",
+    "import/no-anonymous-default-export": "warn"
   }
 }

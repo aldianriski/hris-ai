@@ -214,11 +214,11 @@ export function AuditTrailViewer() {
               className="w-48"
               size="sm"
             >
-              <SelectItem key="all" value="all">All Actions</SelectItem>
-              <SelectItem key="create" value="create">Create</SelectItem>
-              <SelectItem key="update" value="update">Update</SelectItem>
-              <SelectItem key="delete" value="delete">Delete</SelectItem>
-              <SelectItem key="export" value="export">Export</SelectItem>
+              <SelectItem key="all">All Actions</SelectItem>
+              <SelectItem key="create">Create</SelectItem>
+              <SelectItem key="update">Update</SelectItem>
+              <SelectItem key="delete">Delete</SelectItem>
+              <SelectItem key="export">Export</SelectItem>
             </Select>
             <Select
               label="Resource"
@@ -227,11 +227,11 @@ export function AuditTrailViewer() {
               className="w-48"
               size="sm"
             >
-              <SelectItem key="all" value="all">All Resources</SelectItem>
-              <SelectItem key="employee" value="employee">Employee</SelectItem>
-              <SelectItem key="leave_request" value="leave_request">Leave Request</SelectItem>
-              <SelectItem key="payroll" value="payroll">Payroll</SelectItem>
-              <SelectItem key="document" value="document">Document</SelectItem>
+              <SelectItem key="all">All Resources</SelectItem>
+              <SelectItem key="employee">Employee</SelectItem>
+              <SelectItem key="leave_request">Leave Request</SelectItem>
+              <SelectItem key="payroll">Payroll</SelectItem>
+              <SelectItem key="document">Document</SelectItem>
             </Select>
           </div>
         </CardBody>

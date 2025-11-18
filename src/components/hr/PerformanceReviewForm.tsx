@@ -97,7 +97,7 @@ export function PerformanceReviewForm({ mode, reviewId }: PerformanceReviewFormP
               startContent={<Star className="w-4 h-4" />}
             >
               {RATING_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value}>
                   {option.label}
                 </SelectItem>
               ))}

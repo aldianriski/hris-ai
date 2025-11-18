@@ -282,12 +282,12 @@ export default function InvoicesPage() {
               selectedKeys={[statusFilter]}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <SelectItem key="all" value="all">All</SelectItem>
-              <SelectItem key="draft" value="draft">Draft</SelectItem>
-              <SelectItem key="sent" value="sent">Sent</SelectItem>
-              <SelectItem key="paid" value="paid">Paid</SelectItem>
-              <SelectItem key="overdue" value="overdue">Overdue</SelectItem>
-              <SelectItem key="cancelled" value="cancelled">Cancelled</SelectItem>
+              <SelectItem key="all">All</SelectItem>
+              <SelectItem key="draft">Draft</SelectItem>
+              <SelectItem key="sent">Sent</SelectItem>
+              <SelectItem key="paid">Paid</SelectItem>
+              <SelectItem key="overdue">Overdue</SelectItem>
+              <SelectItem key="cancelled">Cancelled</SelectItem>
             </Select>
             <Button
               color="primary"
@@ -400,7 +400,7 @@ export default function InvoicesPage() {
                           >
                             View Details
                           </DropdownItem>
-                          {invoice.status === 'draft' && (
+                          {invoice.status === 'draft' ? (
                             <DropdownItem
                               key="send"
                               startContent={<Send className="w-4 h-4" />}
@@ -408,8 +408,8 @@ export default function InvoicesPage() {
                             >
                               Send Invoice
                             </DropdownItem>
-                          )}
-                          {(invoice.status === 'sent' || invoice.status === 'overdue') && (
+                          ) : null}
+                          {(invoice.status === 'sent' || invoice.status === 'overdue') ? (
                             <DropdownItem
                               key="mark-paid"
                               startContent={<CheckCircle2 className="w-4 h-4" />}
@@ -417,8 +417,8 @@ export default function InvoicesPage() {
                             >
                               Mark as Paid
                             </DropdownItem>
-                          )}
-                          {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                          ) : null}
+                          {invoice.status !== 'paid' && invoice.status !== 'cancelled' ? (
                             <DropdownItem
                               key="cancel"
                               className="text-danger"
@@ -428,7 +428,7 @@ export default function InvoicesPage() {
                             >
                               Cancel Invoice
                             </DropdownItem>
-                          )}
+                          ) : null}
                           <DropdownItem
                             key="download"
                             startContent={<Download className="w-4 h-4" />}

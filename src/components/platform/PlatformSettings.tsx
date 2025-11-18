@@ -250,10 +250,10 @@ export function PlatformSettings() {
                     selectedKeys={[settings.default_timezone]}
                     onChange={(e) => updateSetting('default_timezone', e.target.value)}
                   >
-                    <SelectItem key="Asia/Jakarta" value="Asia/Jakarta">Asia/Jakarta (WIB)</SelectItem>
-                    <SelectItem key="Asia/Makassar" value="Asia/Makassar">Asia/Makassar (WITA)</SelectItem>
-                    <SelectItem key="Asia/Jayapura" value="Asia/Jayapura">Asia/Jayapura (WIT)</SelectItem>
-                    <SelectItem key="UTC" value="UTC">UTC</SelectItem>
+                    <SelectItem key="Asia/Jakarta">Asia/Jakarta (WIB)</SelectItem>
+                    <SelectItem key="Asia/Makassar">Asia/Makassar (WITA)</SelectItem>
+                    <SelectItem key="Asia/Jayapura">Asia/Jayapura (WIT)</SelectItem>
+                    <SelectItem key="UTC">UTC</SelectItem>
                   </Select>
 
                   <Select
@@ -261,8 +261,8 @@ export function PlatformSettings() {
                     selectedKeys={[settings.default_language]}
                     onChange={(e) => updateSetting('default_language', e.target.value)}
                   >
-                    <SelectItem key="en" value="en">English</SelectItem>
-                    <SelectItem key="id" value="id">Bahasa Indonesia</SelectItem>
+                    <SelectItem key="en">English</SelectItem>
+                    <SelectItem key="id">Bahasa Indonesia</SelectItem>
                   </Select>
                 </div>
 
@@ -416,10 +416,10 @@ export function PlatformSettings() {
                   selectedKeys={[settings.email_provider]}
                   onChange={(e) => updateSetting('email_provider', e.target.value)}
                 >
-                  <SelectItem key="smtp" value="smtp">SMTP</SelectItem>
-                  <SelectItem key="sendgrid" value="sendgrid">SendGrid</SelectItem>
-                  <SelectItem key="ses" value="ses">AWS SES</SelectItem>
-                  <SelectItem key="resend" value="resend">Resend</SelectItem>
+                  <SelectItem key="smtp">SMTP</SelectItem>
+                  <SelectItem key="sendgrid">SendGrid</SelectItem>
+                  <SelectItem key="ses">AWS SES</SelectItem>
+                  <SelectItem key="resend">Resend</SelectItem>
                 </Select>
 
                 {settings.email_provider === 'smtp' && (
@@ -507,9 +507,9 @@ export function PlatformSettings() {
                       selectedKeys={[settings.ai_provider]}
                       onChange={(e) => updateSetting('ai_provider', e.target.value)}
                     >
-                      <SelectItem key="openai" value="openai">OpenAI</SelectItem>
-                      <SelectItem key="anthropic" value="anthropic">Anthropic (Claude)</SelectItem>
-                      <SelectItem key="azure" value="azure">Azure OpenAI</SelectItem>
+                      <SelectItem key="openai">OpenAI</SelectItem>
+                      <SelectItem key="anthropic">Anthropic (Claude)</SelectItem>
+                      <SelectItem key="azure">Azure OpenAI</SelectItem>
                     </Select>
 
                     <Input
@@ -560,8 +560,8 @@ export function PlatformSettings() {
                   selectedKeys={[settings.payment_gateway]}
                   onChange={(e) => updateSetting('payment_gateway', e.target.value)}
                 >
-                  <SelectItem key="stripe" value="stripe">Stripe</SelectItem>
-                  <SelectItem key="midtrans" value="midtrans">Midtrans</SelectItem>
+                  <SelectItem key="stripe">Stripe</SelectItem>
+                  <SelectItem key="midtrans">Midtrans</SelectItem>
                 </Select>
 
                 <Select
@@ -569,8 +569,8 @@ export function PlatformSettings() {
                   selectedKeys={[settings.payment_gateway_mode]}
                   onChange={(e) => updateSetting('payment_gateway_mode', e.target.value)}
                 >
-                  <SelectItem key="test" value="test">Test Mode</SelectItem>
-                  <SelectItem key="live" value="live">Live Mode</SelectItem>
+                  <SelectItem key="test">Test Mode</SelectItem>
+                  <SelectItem key="live">Live Mode</SelectItem>
                 </Select>
 
                 {settings.payment_gateway === 'stripe' && (

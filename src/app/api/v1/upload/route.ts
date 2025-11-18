@@ -8,12 +8,12 @@ import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { strictRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { uploadFile, validateFile } from '@/lib/storage/upload';
 import { STORAGE_LIMITS, ALLOWED_FILE_TYPES } from '@/lib/storage/config';
 
 async function handler(request: NextRequest) {
-  await strictRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 

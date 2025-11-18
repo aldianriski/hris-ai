@@ -184,16 +184,16 @@ export function CreateFeatureFlagModal({
               rollout_type: e.target.value as typeof formData.rollout_type
             })}
           >
-            <SelectItem key="global" value="global">
+            <SelectItem key="global">
               Global - All tenants
             </SelectItem>
-            <SelectItem key="percentage" value="percentage">
+            <SelectItem key="percentage">
               Percentage - Gradual rollout
             </SelectItem>
-            <SelectItem key="whitelist" value="whitelist">
+            <SelectItem key="whitelist">
               Whitelist - Specific tenants only
             </SelectItem>
-            <SelectItem key="blacklist" value="blacklist">
+            <SelectItem key="blacklist">
               Blacklist - Exclude specific tenants
             </SelectItem>
           </Select>

@@ -113,7 +113,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Check permissions
     const { data: session } = await supabase
       .from('chat_sessions')
-      .select('user_id, assigned_agent_id, status')
+      .select('user_id, assigned_agent_id, status, closed_at, created_at')
       .eq('id', id)
       .single();
 
@@ -170,18 +170,38 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       updateData.assigned_agent_id = updates.assigned_agent_id;
 
       // Update agent counts
+      // Note: Supabase doesn't support .raw() for SQL expressions
+      // Use RPC function or handle at application level
       if (session.assigned_agent_id) {
-        await supabase
+        // Decrement previous agent's count
+        const { data: prevAgent } = await supabase
           .from('chat_agent_availability')
-          .update({ current_active_chats: supabase.raw('current_active_chats - 1') })
-          .eq('agent_id', session.assigned_agent_id);
+          .select('current_active_chats')
+          .eq('agent_id', session.assigned_agent_id)
+          .single();
+
+        if (prevAgent) {
+          await supabase
+            .from('chat_agent_availability')
+            .update({ current_active_chats: Math.max(0, (prevAgent.current_active_chats || 0) - 1) })
+            .eq('agent_id', session.assigned_agent_id);
+        }
       }
 
       if (updates.assigned_agent_id) {
-        await supabase
+        // Increment new agent's count
+        const { data: newAgent } = await supabase
           .from('chat_agent_availability')
-          .update({ current_active_chats: supabase.raw('current_active_chats + 1') })
-          .eq('agent_id', updates.assigned_agent_id);
+          .select('current_active_chats')
+          .eq('agent_id', updates.assigned_agent_id)
+          .single();
+
+        if (newAgent) {
+          await supabase
+            .from('chat_agent_availability')
+            .update({ current_active_chats: (newAgent.current_active_chats || 0) + 1 })
+            .eq('agent_id', updates.assigned_agent_id);
+        }
       }
     }
 

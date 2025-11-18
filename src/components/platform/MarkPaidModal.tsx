@@ -125,7 +125,7 @@ export function MarkPaidModal({
             isRequired
           >
             {PAYMENT_METHODS.map((method) => (
-              <SelectItem key={method.value} value={method.value}>
+              <SelectItem key={method.value}>
                 {method.label}
               </SelectItem>
             ))}

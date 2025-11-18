@@ -337,7 +337,7 @@ export default function HRDocumentsPage() {
                 className="max-w-xs"
               >
                 {documentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value}>
                     {type.label}
                   </SelectItem>
                 ))}
