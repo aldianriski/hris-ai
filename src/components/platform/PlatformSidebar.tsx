@@ -11,7 +11,8 @@ import {
   BarChart3,
   Settings,
   Zap,
-  LogOut
+  LogOut,
+  Flag
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/auth/use-permissions';
 import { getRoleDisplayName, type PlatformRole } from '@/lib/auth/permissions';
@@ -44,6 +45,12 @@ const navigationConfig = [
     roles: ['super_admin', 'billing_admin', 'platform_admin'] as PlatformRole[]
   },
   {
+    name: 'Subscription Plans',
+    href: '/subscription-plans',
+    icon: CreditCard,
+    roles: ['super_admin', 'billing_admin'] as PlatformRole[]
+  },
+  {
     name: 'Support',
     href: '/support',
     icon: LifeBuoy,
@@ -60,6 +67,12 @@ const navigationConfig = [
     href: '/settings',
     icon: Settings,
     roles: ['super_admin'] as PlatformRole[]
+  },
+  {
+    name: 'Feature Flags',
+    href: '/feature-flags',
+    icon: Flag,
+    roles: ['super_admin', 'platform_admin'] as PlatformRole[]
   },
 ];
 
