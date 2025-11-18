@@ -164,3 +164,139 @@ export interface DashboardStats {
   pendingLeaveRequests: number;
   expiringDocuments: number;
 }
+
+// Payroll Types
+export interface PayrollPeriod {
+  id: string;
+  employerId: string;
+  periodStart: string;
+  periodEnd: string;
+  month: number;
+  year: number;
+  status: 'draft' | 'processing' | 'approved' | 'paid';
+  totalEmployees: number;
+  totalGrossSalary: number;
+  totalDeductions: number;
+  totalNetSalary: number;
+  approvedBy?: string;
+  approvedAt?: string;
+  paidAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollDetail {
+  id: string;
+  periodId: string;
+  employeeId: string;
+  employeeName: string;
+  employeeNumber: string;
+  baseSalary: number;
+  allowances: number;
+  overtime: number;
+  grossSalary: number;
+  bpjsKesehatan: number;
+  bpjsJHT: number;
+  bpjsJP: number;
+  pph21: number;
+  otherDeductions: number;
+  totalDeductions: number;
+  netSalary: number;
+  status: 'draft' | 'approved' | 'paid';
+  errors?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePayrollPeriodData {
+  employerId: string;
+  periodStart: string;
+  periodEnd: string;
+  month: number;
+  year: number;
+}
+
+export interface ListPayrollPeriodsParams {
+  employerId: string;
+  status?: string;
+  year?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ListPayrollPeriodsResponse {
+  periods: PayrollPeriod[];
+  total: number;
+}
+
+// Performance Types
+export interface PerformanceReview {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employerId: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewPeriod: string;
+  reviewDate: string;
+  overallRating: number;
+  category: 'Exceeds Expectations' | 'Meets Expectations' | 'Needs Improvement' | 'Unsatisfactory';
+  strengths: string[];
+  areasForImprovement: string[];
+  goals: string[];
+  comments: string;
+  aiSentimentScore?: number;
+  aiSentimentAnalysis?: string;
+  feedback360?: Feedback360[];
+  status: 'draft' | 'submitted' | 'acknowledged';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Feedback360 {
+  id: string;
+  reviewId: string;
+  feedbackProvider: string;
+  feedbackProviderRole: 'peer' | 'manager' | 'subordinate' | 'self';
+  rating: number;
+  comments: string;
+  createdAt: string;
+}
+
+export interface PerformanceGoal {
+  id: string;
+  employeeId: string;
+  employerId: string;
+  goalType: 'OKR' | 'KPI';
+  title: string;
+  description: string;
+  targetDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
+  progress: number;
+  keyResults?: KeyResult[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KeyResult {
+  id: string;
+  goalId: string;
+  description: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+}
+
+export interface CreatePerformanceReviewData {
+  employeeId: string;
+  employerId: string;
+  reviewerId: string;
+  reviewPeriod: string;
+  reviewDate: string;
+  overallRating: number;
+  strengths: string[];
+  areasForImprovement: string[];
+  goals: string[];
+  comments: string;
+}
