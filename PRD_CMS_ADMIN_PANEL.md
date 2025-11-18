@@ -339,7 +339,7 @@ interface PlatformDashboard {
    - User list with roles
    - Add/remove users
    - Reset passwords
-   - Impersonate user (for support)
+   - **Impersonate user (for support - see detailed section below)**
 
 3. **Billing**
    - Current plan & pricing
@@ -425,7 +425,624 @@ interface TenantCreationWizard {
 
 ---
 
-### **3. User Management (Platform-Wide)**
+### **3. Platform Admin Impersonation ("Login As" Feature)**
+**Priority:** CRITICAL for Support
+**Effort:** 5 days
+**Status:** ✅ IMPLEMENTED
+
+#### **Business Purpose**
+Allow platform administrators to impersonate tenant users to:
+- Debug issues from the user's exact perspective
+- Troubleshoot reported bugs in specific user contexts
+- Provide hands-on customer support
+- Test features as different user roles
+- Investigate anomalies or data issues
+
+**CRITICAL: This feature requires comprehensive audit tracking to prevent fraud and ensure compliance.**
+
+---
+
+#### **Security & Compliance Requirements**
+
+**Access Control:**
+- **Who can impersonate:** Only `super_admin` and `platform_admin` roles
+- **Who can be impersonated:** Only tenant users (NOT other platform admins)
+- **Business justification required:** Minimum 10-character reason mandatory
+- **Session timeout:** Auto-expire after 2 hours
+- **One session limit:** Only one active impersonation per admin
+- **No privilege escalation:** Impersonator gets exact permissions of target user
+
+**Audit Requirements:**
+- **Session tracking:** Start time, end time, duration, reason
+- **Identity tracking:** Who impersonated whom, from which IP address
+- **Action tracking:** All API calls and data access during session
+- **User agent logging:** Browser and device information
+- **Immutable logs:** Cannot be deleted or modified
+- **Retention:** 7-year retention for compliance
+- **Alert mechanism:** Optional notifications to target user
+
+---
+
+#### **Database Schema**
+
+```sql
+-- Track all impersonation sessions
+CREATE TABLE platform_impersonation_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+  -- Who and What
+  platform_admin_id UUID NOT NULL REFERENCES users(id),
+  target_user_id UUID NOT NULL REFERENCES users(id),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+
+  -- Session Details
+  reason TEXT NOT NULL, -- Business justification (min 10 chars)
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+    -- 'active', 'ended', 'expired', 'terminated'
+
+  -- Timestamps
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ended_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ NOT NULL, -- Auto-expire after 2 hours
+
+  -- Forensics
+  ip_address VARCHAR(45) NOT NULL,
+  user_agent TEXT,
+
+  -- Metadata
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Constraints
+  CONSTRAINT valid_status CHECK (status IN ('active', 'ended', 'expired', 'terminated')),
+  CONSTRAINT valid_duration CHECK (ended_at IS NULL OR ended_at > started_at),
+  CONSTRAINT valid_expiry CHECK (expires_at > started_at)
+);
+
+-- Audit log of ALL actions during impersonation
+CREATE TABLE platform_impersonation_actions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES platform_impersonation_sessions(id) ON DELETE CASCADE,
+
+  -- Action Details
+  action VARCHAR(100) NOT NULL,
+    -- e.g., 'page.viewed', 'data.read', 'data.modified'
+  resource_type VARCHAR(50),
+    -- e.g., 'employee', 'payroll', 'leave_request'
+  resource_id UUID,
+
+  -- Request Details
+  method VARCHAR(10), -- GET, POST, PATCH, DELETE
+  path TEXT, -- API endpoint or page path
+
+  -- Additional Context
+  metadata JSONB, -- Query params, request body, response status
+
+  -- Timestamp
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_impersonation_sessions_admin ON platform_impersonation_sessions(platform_admin_id);
+CREATE INDEX idx_impersonation_sessions_target ON platform_impersonation_sessions(target_user_id);
+CREATE INDEX idx_impersonation_sessions_tenant ON platform_impersonation_sessions(tenant_id);
+CREATE INDEX idx_impersonation_sessions_status ON platform_impersonation_sessions(status);
+CREATE INDEX idx_impersonation_sessions_active ON platform_impersonation_sessions(status, expires_at) WHERE status = 'active';
+CREATE INDEX idx_impersonation_actions_session ON platform_impersonation_actions(session_id);
+CREATE INDEX idx_impersonation_actions_created ON platform_impersonation_actions(created_at DESC);
+```
+
+---
+
+#### **API Endpoints**
+
+**1. Start Impersonation**
+```typescript
+POST /api/platform/impersonate/start
+
+Request:
+{
+  targetUserId: string;    // UUID of user to impersonate
+  tenantId: string;        // UUID of tenant
+  reason: string;          // Min 10 characters, required
+}
+
+Response:
+{
+  sessionId: string;
+  targetUser: {
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+  };
+  tenant: {
+    id: string;
+    company_name: string;
+    slug: string;
+  };
+  startedAt: string;       // ISO timestamp
+  expiresAt: string;       // ISO timestamp (started + 2 hours)
+  redirectUrl: string;     // Where to redirect based on user role
+}
+
+Security Checks:
+- ✅ Verify current user is super_admin or platform_admin
+- ✅ Verify target user is NOT a platform admin
+- ✅ Verify target user belongs to specified tenant
+- ✅ Verify no active impersonation session exists for this admin
+- ✅ Validate reason is at least 10 characters
+- ✅ Create session with 2-hour expiry
+- ✅ Create audit log entry in platform_audit_logs
+```
+
+**2. End Impersonation**
+```typescript
+POST /api/platform/impersonate/end
+
+Request:
+{
+  sessionId: string;
+}
+
+Response:
+{
+  message: string;
+  duration: string;        // e.g., "1h 23m 45s"
+  actionsLogged: number;   // Count of actions during session
+  session: {
+    id: string;
+    startedAt: string;
+    endedAt: string;
+  };
+}
+
+Actions:
+- ✅ Update session status to 'ended'
+- ✅ Set ended_at timestamp
+- ✅ Calculate session duration
+- ✅ Count actions performed
+- ✅ Create audit log entry
+- ✅ Return to platform admin dashboard
+```
+
+**3. Get Active Session**
+```typescript
+GET /api/platform/impersonate/active
+
+Response:
+{
+  isImpersonating: boolean;
+  session?: {
+    id: string;
+    targetUser: {
+      id: string;
+      email: string;
+      full_name: string;
+      role: string;
+    };
+    tenant: {
+      id: string;
+      company_name: string;
+      slug: string;
+    };
+    startedAt: string;
+    expiresAt: string;
+    reason: string;
+  };
+  expired?: boolean;       // If session just expired
+}
+
+Actions:
+- ✅ Check for current admin's active session
+- ✅ Auto-expire if past expiry time
+- ✅ Return session details if active
+```
+
+**4. List Impersonation Sessions**
+```typescript
+GET /api/platform/impersonate/sessions?adminId=<uuid>&tenantId=<uuid>&status=<status>&limit=20&offset=0
+
+Response:
+{
+  data: Array<{
+    id: string;
+    platformAdmin: {
+      id: string;
+      full_name: string;
+      email: string;
+    };
+    targetUser: {
+      id: string;
+      full_name: string;
+      email: string;
+      role: string;
+    };
+    tenant: {
+      id: string;
+      company_name: string;
+      slug: string;
+    };
+    reason: string;
+    status: 'active' | 'ended' | 'expired' | 'terminated';
+    startedAt: string;
+    endedAt?: string;
+    duration?: string;
+    actionsCount: number;
+    ipAddress: string;
+  }>;
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+Filters:
+- adminId: Filter by platform admin
+- targetUserId: Filter by target user
+- tenantId: Filter by tenant
+- status: Filter by session status
+- limit/offset: Pagination
+```
+
+---
+
+#### **UI Components**
+
+**1. ImpersonationBanner (Top of Screen)**
+```typescript
+interface ImpersonationBannerProps {
+  session: {
+    targetUser: {
+      full_name: string;
+      email: string;
+      role: string;
+    };
+    tenant: {
+      company_name: string;
+    };
+    startedAt: string;
+    expiresAt: string;
+    reason: string;
+  };
+}
+```
+
+**Features:**
+- **Persistent banner** at top of screen (cannot be dismissed)
+- **High visibility:** Orange/red gradient background
+- **Warning icon:** AlertTriangle with animation
+- **User info:** Shows "Impersonating: John Doe (john@example.com) at ACME Corp"
+- **Countdown timer:** Real-time countdown to expiry
+- **Exit button:** Prominent "Exit Impersonation" button
+- **Mobile responsive:** Stacks on small screens
+- **Auto-refresh:** Polls every 30 seconds to check session status
+- **Warning at 15min:** Shows alert when 15 minutes remaining
+
+**Visual Design:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ ⚠️ IMPERSONATION MODE ACTIVE                      ⏱️ 1h 23m 12s    │
+│ Viewing as: John Doe (john@acme.com) at ACME Corp                  │
+│                                        [🚪 Exit Impersonation]      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+**2. ImpersonateUserModal**
+```typescript
+interface ImpersonateUserModalProps {
+  targetUser: {
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+  };
+  tenant: {
+    id: string;
+    company_name: string;
+  };
+  onSuccess: () => void;
+}
+```
+
+**Features:**
+- **User information card:** Shows who you're about to impersonate
+- **Security warnings:**
+  - "All actions during impersonation are logged"
+  - "Session will auto-expire after 2 hours"
+  - "You will have exact same permissions as target user"
+  - "Reason required for compliance and audit"
+  - "Only for support and debugging purposes"
+- **Required reason field:** Minimum 10 characters, with character counter
+- **Placeholder examples:** "Investigating bug #1234", "Debugging payroll issue"
+- **Error handling:** Clear error messages
+- **Loading states:** Spinner during session creation
+- **Auto-redirect:** Redirects to tenant app after successful start
+
+**Visual Design:**
+```
+┌────────────────────────────────────────────────┐
+│ 🛡️ Impersonate User                            │
+│                                                 │
+│ ┌─────────────────────────────────────────┐   │
+│ │ 👤 John Doe                             │   │
+│ │ john@acme.com                           │   │
+│ │ Role: Employee | Tenant: ACME Corp     │   │
+│ └─────────────────────────────────────────┘   │
+│                                                 │
+│ ⚠️ Security & Compliance Notice                │
+│ • All actions are logged for audit             │
+│ • Session expires after 2 hours                │
+│ • You get exact permissions as target user     │
+│ • Reason required for compliance               │
+│                                                 │
+│ Reason for Impersonation *                     │
+│ ┌─────────────────────────────────────────┐   │
+│ │ e.g., Debugging payroll calculation... │   │
+│ └─────────────────────────────────────────┘   │
+│ Minimum 10 characters                          │
+│                                                 │
+│         [Cancel]  [Start Impersonation]        │
+└────────────────────────────────────────────────┘
+```
+
+---
+
+**3. Impersonate Button Placement**
+
+**In Tenant Detail View:**
+- Header actions area (alongside Edit, Suspend buttons)
+- Only visible to super_admin and platform_admin
+
+**In Tenant Users Tab:**
+- Each user row has dropdown menu
+- "Impersonate User" action with UserCog icon
+- Launches ImpersonateUserModal on click
+
+**In Platform Users List:**
+- Quick action button for tenant users
+- Disabled for platform admin users
+
+---
+
+#### **Session Management**
+
+**Session Lifecycle:**
+
+```mermaid
+graph TD
+    A[Admin clicks Impersonate] --> B[Modal shows warnings]
+    B --> C[Admin enters reason]
+    C --> D{Validation}
+    D -->|Failed| B
+    D -->|Success| E[Create session in DB]
+    E --> F[Set 2-hour expiry]
+    F --> G[Redirect to tenant app]
+    G --> H[Banner appears at top]
+    H --> I[User browses as target user]
+    I --> J[Every action logged]
+    J --> K{Session status}
+    K -->|Admin clicks Exit| L[End session]
+    K -->|2 hours elapsed| M[Auto-expire session]
+    K -->|Browser closed| N[Terminate session]
+    L --> O[Return to platform admin]
+    M --> O
+    N --> O
+    O --> P[Show summary]
+```
+
+**1. Start Session:**
+- Admin clicks "Impersonate" button
+- Modal shows security warnings
+- Admin enters reason (min 10 chars)
+- Admin confirms
+- Session created in database
+- Admin redirected to tenant app as target user
+- Banner appears at top of screen
+
+**2. Active Session:**
+- All requests include impersonation context
+- Every action logged to `platform_impersonation_actions`
+- Banner shows countdown timer
+- Warning shown at 15 minutes before expiry
+- Session survives page refresh (checked on load)
+
+**3. End Session:**
+- **Manual:** Admin clicks "Exit Impersonation"
+- **Auto-expiry:** Session expires after 2 hours
+- **Terminated:** Browser closed (next request marks as terminated)
+- Session status updated in database
+- Admin returned to platform admin view
+- Summary shown: duration, actions count, success message
+
+---
+
+#### **Middleware Integration**
+
+Authentication middleware must check for active impersonation:
+
+```typescript
+export async function authMiddleware(req: NextRequest) {
+  const user = await getCurrentUser();
+
+  // Check if current user is impersonating someone
+  const { data: impersonation } = await supabase
+    .from('platform_impersonation_sessions')
+    .select('target_user_id, tenant_id, expires_at')
+    .eq('platform_admin_id', user.id)
+    .eq('status', 'active')
+    .single();
+
+  if (impersonation) {
+    // Check if expired
+    if (new Date(impersonation.expires_at) < new Date()) {
+      // Auto-expire
+      await supabase
+        .from('platform_impersonation_sessions')
+        .update({ status: 'expired', ended_at: impersonation.expires_at })
+        .eq('platform_admin_id', user.id)
+        .eq('status', 'active');
+    } else {
+      // Use target user's context
+      req.impersonation = {
+        isImpersonating: true,
+        actualUserId: user.id,
+        targetUserId: impersonation.target_user_id,
+        tenantId: impersonation.tenant_id,
+      };
+
+      // Switch user context to target user
+      user = await getUserById(impersonation.target_user_id);
+    }
+  }
+
+  return user;
+}
+```
+
+---
+
+#### **Security Considerations**
+
+**Preventing Abuse:**
+
+1. **Rate Limiting:** Maximum 5 impersonation sessions per admin per day
+2. **Suspicious Pattern Detection:** Alert if admin impersonates same user multiple times in short period
+3. **Restricted Actions:** Some sensitive actions may be blocked during impersonation:
+   - Changing passwords
+   - Updating security settings (MFA, etc.)
+   - Deleting users
+   - Modifying payment methods
+4. **Session Monitoring:** Real-time alerts for platform super_admin when any impersonation starts
+5. **Concurrent Session Prevention:** Only one active impersonation per admin
+6. **Auto-expiry:** Hard limit of 2 hours, cannot be extended
+
+**Compliance:**
+
+1. **GDPR Compliance:**
+   - User right to know: Optional email notification after impersonation ends
+   - Clear audit trail of who accessed their data and why
+   - Ability to export impersonation logs
+
+2. **Audit Trail:**
+   - Immutable logs with 7-year retention
+   - Cannot be deleted or modified
+   - Includes: who, what, when, why, where, how
+
+3. **Access Reports:**
+   - Monthly reports of all impersonation sessions
+   - Sent to super admins
+   - Flag unusual patterns
+
+4. **Justification Review:**
+   - Periodic review of impersonation reasons
+   - Ensure legitimate business use
+   - Investigate vague or suspicious reasons
+
+---
+
+#### **Monitoring & Alerts**
+
+**Real-time Monitoring:**
+- Dashboard showing all active impersonation sessions
+- Alerts when impersonation starts (Slack, email)
+- Daily summary of impersonation activity
+- Weekly report of top impersonators
+- Flag sessions with high action counts
+
+**Metrics to Track:**
+- Total impersonation sessions (daily, weekly, monthly)
+- Average session duration
+- Actions per session
+- Most impersonated users
+- Most common reasons
+- Impersonation by admin (who impersonates most)
+- Impersonation by tenant (which tenants get most support)
+
+---
+
+#### **Testing Checklist**
+
+**Security Tests:**
+- [ ] Only platform admins can start impersonation
+- [ ] Cannot impersonate other platform admins
+- [ ] Session expires after exactly 2 hours
+- [ ] All actions during impersonation are logged
+- [ ] Concurrent sessions are prevented
+- [ ] Banner displays correctly and cannot be dismissed
+- [ ] Exit impersonation works immediately
+- [ ] Auto-expiry works correctly
+- [ ] Reason validation works (min 10 chars)
+
+**Functionality Tests:**
+- [ ] Session survives page refresh
+- [ ] Session cleared on manual end
+- [ ] Session cleared on auto-expiry
+- [ ] Session cleared on browser close (marked as terminated)
+- [ ] Audit logs are created correctly
+- [ ] Audit logs are immutable
+- [ ] Countdown timer updates every second
+- [ ] Warning shown at 15 minutes remaining
+- [ ] Redirect works correctly based on user role
+
+**Performance Tests:**
+- [ ] Impersonation check doesn't slow down requests
+- [ ] Action logging doesn't impact performance
+- [ ] Database indexes are efficient
+- [ ] Polling for session status is optimized
+
+---
+
+#### **Implementation Status**
+
+✅ **COMPLETED - Sprint 13**
+
+**Implemented Components:**
+- ✅ Database migration: `20241118_create_impersonation_tables.sql`
+- ✅ API Routes:
+  - `/api/platform/impersonate/start` (POST)
+  - `/api/platform/impersonate/end` (POST)
+  - `/api/platform/impersonate/active` (GET)
+  - `/api/platform/impersonate/sessions` (GET)
+- ✅ UI Components:
+  - `ImpersonationBanner.tsx`
+  - `ImpersonateUserModal.tsx`
+  - Integration in `TenantUsersTab.tsx`
+- ✅ Security:
+  - Row Level Security (RLS) policies
+  - RBAC enforcement (only super_admin & platform_admin)
+  - Comprehensive audit logging
+  - Auto-expiry mechanism
+- ✅ Documentation:
+  - Design document: `docs/impersonation-security-design.md`
+  - API specifications
+  - Security guidelines
+
+**Git Commit:** `8de8346` - feat: Implement Tenant Suspend/Activate & Platform Admin Impersonation System
+
+---
+
+#### **Future Enhancements**
+
+**Phase 2 (Optional):**
+- [ ] Email notifications to impersonated users (after session ends)
+- [ ] Real-time alerts for super admins (Slack integration)
+- [ ] Dedicated impersonation sessions management page (view all sessions, filter, export)
+- [ ] Export impersonation audit logs to CSV for compliance
+- [ ] AI-based anomaly detection for suspicious impersonation patterns
+- [ ] Session recording/replay (screen recording during impersonation)
+- [ ] Impersonation heatmap (most impersonated users/tenants)
+- [ ] Customizable session duration (per admin, with max limit)
+- [ ] Two-factor authentication required before impersonation (extra security layer)
+- [ ] Impersonation requests/approvals workflow (admin requests, super admin approves)
+
+---
+
+### **4. User Management (Platform-Wide)**
 **Priority:** HIGH
 **Effort:** 3 days
 
@@ -437,7 +1054,7 @@ interface TenantCreationWizard {
 - Reset passwords
 - Merge duplicate accounts
 - View user's login history
-- Impersonate user (for support with audit trail)
+- **Impersonate user** (✅ Implemented - see Section 3 above for full details)
 
 **User Detail View:**
 ```typescript
@@ -1894,12 +2511,7 @@ CREATE TABLE feature_flags (
    - Custom charts
    - Scheduled reports
 
-2. **Tenant Impersonation**
-   - View platform as specific tenant
-   - Debug customer issues
-   - Audit trail
-
-3. **API Usage Dashboard**
+2. **API Usage Dashboard**
    - Track API calls per tenant
    - Rate limit monitoring
    - API key management
@@ -1925,6 +2537,6 @@ CREATE TABLE feature_flags (
 
 ---
 
-*Last Updated: 2025-11-18*
-*Version: 1.0*
-*Status: Planning - Ready for Implementation*
+*Last Updated: 2024-11-18*
+*Version: 1.1*
+*Status: In Progress - Sprint 13 (Platform Admin Core) with Impersonation Feature Completed*
