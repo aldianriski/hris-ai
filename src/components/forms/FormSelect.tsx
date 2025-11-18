@@ -8,11 +8,16 @@
 import { SelectHTMLAttributes, forwardRef } from 'react';
 import { AlertCircle, ChevronDown } from 'lucide-react';
 
-interface FormSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+export interface FormSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   error?: string;
   helpText?: string;
   options: { value: string; label: string }[];
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
 }
 
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(

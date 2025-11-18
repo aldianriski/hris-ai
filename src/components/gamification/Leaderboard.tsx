@@ -274,7 +274,7 @@ export function Leaderboard() {
     return <Minus className="h-4 w-4 text-default-400" />;
   };
 
-  const currentData = leaderboardData[activeTab] || leaderboardData.overall;
+  const currentData = leaderboardData[activeTab] || leaderboardData.overall || [];
 
   return (
     <div className="space-y-6">
@@ -309,7 +309,7 @@ export function Leaderboard() {
         </CardHeader>
         <CardBody className="gap-3">
           {/* Top 3 Podium */}
-          {currentData.length >= 3 && (
+          {currentData && currentData.length >= 3 && currentData[0] && currentData[1] && currentData[2] && (
             <div className="grid grid-cols-3 gap-4 mb-6">
               {/* 2nd Place */}
               <motion.div

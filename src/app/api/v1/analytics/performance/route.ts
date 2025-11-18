@@ -109,20 +109,26 @@ async function handler(request: NextRequest) {
           completed: 0,
         };
       }
-      byDepartment[dept].count++;
-      if (review.overall_rating) {
-        byDepartment[dept].averageRating += review.overall_rating;
-      }
-      if (review.status === 'submitted' || review.status === 'completed') {
-        byDepartment[dept].completed++;
+      const deptData = byDepartment[dept];
+      if (deptData) {
+        deptData.count++;
+        if (review.overall_rating) {
+          deptData.averageRating += review.overall_rating;
+        }
+        if (review.status === 'submitted' || review.status === 'completed') {
+          deptData.completed++;
+        }
       }
     });
 
     // Calculate department averages
     Object.keys(byDepartment).forEach(dept => {
-      byDepartment[dept].averageRating = byDepartment[dept].count > 0
-        ? Math.round((byDepartment[dept].averageRating / byDepartment[dept].count) * 10) / 10
-        : 0;
+      const deptData = byDepartment[dept];
+      if (deptData) {
+        deptData.averageRating = deptData.count > 0
+          ? Math.round((deptData.averageRating / deptData.count) * 10) / 10
+          : 0;
+      }
     });
 
     // Get active employees count for completion tracking

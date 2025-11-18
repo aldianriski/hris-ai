@@ -59,6 +59,11 @@ async function main() {
       }
 
       const lastBackup = backups[0];
+      if (!lastBackup) {
+        console.error('❌ No previous backup found. Create a full backup first.');
+        process.exit(1);
+      }
+
       console.log(`Last backup: ${lastBackup.id} (${lastBackup.timestamp})\n`);
 
       const metadata = await createIncrementalBackup(lastBackup.timestamp);

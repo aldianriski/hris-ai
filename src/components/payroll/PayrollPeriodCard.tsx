@@ -7,7 +7,7 @@
 
 import { DollarSign, Users, Calendar, Download, Send, CheckCircle, AlertCircle } from 'lucide-react';
 
-interface PayrollPeriod {
+export interface PayrollPeriod {
   id: string;
   month: number;
   year: number;
@@ -20,7 +20,7 @@ interface PayrollPeriod {
   paidAt?: string;
 }
 
-interface PayrollPeriodCardProps {
+export interface PayrollPeriodCardProps {
   period: PayrollPeriod;
   onProcess?: (id: string) => void;
   onDownload?: (id: string) => void;

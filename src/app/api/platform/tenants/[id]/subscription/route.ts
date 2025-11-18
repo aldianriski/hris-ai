@@ -67,8 +67,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const isUpgrade = planLimits[newPlan].price > planLimits[currentPlan].price;
-    const limits = planLimits[newPlan];
+    const currentPlanLimits = planLimits[currentPlan];
+    const newPlanLimits = planLimits[newPlan];
+
+    if (!currentPlanLimits || !newPlanLimits) {
+      return NextResponse.json(
+        { error: 'Invalid plan configuration' },
+        { status: 400 }
+      );
+    }
+
+    const isUpgrade = newPlanLimits.price > currentPlanLimits.price;
+    const limits = newPlanLimits;
 
     // Update tenant with new plan and limits
     const { error: updateError } = await supabase

@@ -64,8 +64,11 @@ async function handler(request: NextRequest) {
       if (!byType[leave.leave_type]) {
         byType[leave.leave_type] = { requests: 0, days: 0 };
       }
-      byType[leave.leave_type].requests++;
-      byType[leave.leave_type].days += leave.days_count || 0;
+      const typeData = byType[leave.leave_type];
+      if (typeData) {
+        typeData.requests++;
+        typeData.days += leave.days_count || 0;
+      }
     });
 
     // Monthly trend
@@ -77,8 +80,11 @@ async function handler(request: NextRequest) {
     leaveRequests?.forEach(leave => {
       if (leave.start_date) {
         const month = new Date(leave.start_date).getMonth() + 1;
-        monthlyTrend[month].requests++;
-        monthlyTrend[month].days += leave.days_count || 0;
+        const trendData = monthlyTrend[month];
+        if (trendData) {
+          trendData.requests++;
+          trendData.days += leave.days_count || 0;
+        }
       }
     });
 
