@@ -16,6 +16,11 @@ const updateTenantSchema = z.object({
   currency: z.string().optional(),
   status: z.enum(['active', 'suspended', 'cancelled']).optional(),
   maxEmployees: z.number().int().positive().optional(),
+  maxStorageGb: z.number().int().positive().optional(),
+  maxApiCallsPerMonth: z.number().int().positive().optional(),
+  supportEmail: z.string().email().optional(),
+  customDomain: z.string().nullable().optional(),
+  featureFlags: z.record(z.boolean()).optional(),
   settings: z.record(z.any()).optional(),
 });
 
@@ -130,6 +135,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (validatedData.currency) updateData.currency = validatedData.currency;
     if (validatedData.status) updateData.status = validatedData.status;
     if (validatedData.maxEmployees) updateData.max_employees = validatedData.maxEmployees;
+    if (validatedData.maxStorageGb) updateData.max_storage_gb = validatedData.maxStorageGb;
+    if (validatedData.maxApiCallsPerMonth) updateData.max_api_calls_per_month = validatedData.maxApiCallsPerMonth;
+    if (validatedData.supportEmail) updateData.support_email = validatedData.supportEmail;
+    if (validatedData.customDomain !== undefined) updateData.custom_domain = validatedData.customDomain;
+    if (validatedData.featureFlags) updateData.feature_flags = validatedData.featureFlags;
     if (validatedData.settings) updateData.settings = validatedData.settings;
     updateData.updated_at = new Date().toISOString();
 

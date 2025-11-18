@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardBody, Button } from '@heroui/react';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Card, CardBody, Button, useDisclosure } from '@heroui/react';
+import { ArrowLeft, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { CompanyInfoStep } from './wizard-steps/CompanyInfoStep';
 import { AdminUserStep } from './wizard-steps/AdminUserStep';
 import { SubscriptionStep } from './wizard-steps/SubscriptionStep';
 import { InitialSetupStep } from './wizard-steps/InitialSetupStep';
+import { TenantCreationSuccessModal } from './TenantCreationSuccessModal';
 import type { CreateTenantData } from '@/lib/api/types';
 
 const steps = [
@@ -21,6 +22,16 @@ export function TenantCreationWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [successData, setSuccessData] = useState<{
+    id: string;
+    companyName: string;
+    adminEmail: string;
+    tempPassword: string;
+  } | null>(null);
 
   // Form data for all steps
   const [formData, setFormData] = useState<Partial<CreateTenantData>>({
@@ -54,22 +65,70 @@ export function TenantCreationWizard() {
 
   const updateFormData = (data: Partial<CreateTenantData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
+    // Clear validation errors for updated fields
+    const updatedFields = Object.keys(data);
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      updatedFields.forEach((field) => delete newErrors[field]);
+      return newErrors;
+    });
+  };
+
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (step === 1) {
+      if (!formData.companyName) errors.companyName = 'Company name is required';
+      if (!formData.industry) errors.industry = 'Industry is required';
+      if (!formData.companySize) errors.companySize = 'Company size is required';
+    }
+
+    if (step === 2) {
+      if (!formData.adminFirstName) errors.adminFirstName = 'First name is required';
+      if (!formData.adminLastName) errors.adminLastName = 'Last name is required';
+      if (!formData.adminEmail) {
+        errors.adminEmail = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) {
+        errors.adminEmail = 'Invalid email format';
+      }
+    }
+
+    if (step === 3) {
+      if (!formData.subscriptionPlan) errors.subscriptionPlan = 'Plan is required';
+      if (!formData.maxEmployees || formData.maxEmployees < 1) {
+        errors.maxEmployees = 'Max employees must be at least 1';
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleNext = () => {
+    if (!validateStep(currentStep)) {
+      return;
+    }
+
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
+      setError(null);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      setError(null);
     }
   };
 
   const handleSubmit = async () => {
+    if (!validateStep(currentStep)) {
+      return;
+    }
+
     setIsSubmitting(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/platform/tenants', {
@@ -86,19 +145,27 @@ export function TenantCreationWizard() {
         throw new Error(result.error || 'Failed to create tenant');
       }
 
-      // Show success message with temp password
-      console.log('Tenant created successfully:', result);
-      if (result.tempPassword) {
-        alert(`Tenant created successfully!\n\nAdmin Email: ${result.adminEmail}\nTemporary Password: ${result.tempPassword}\n\nPlease save this password - it won't be shown again.`);
-      }
-
-      // Redirect to tenant detail page
-      router.push(`/platform-admin/tenants/${result.tenant.id}`);
+      // Show success modal with credentials
+      setSuccessData({
+        id: result.tenant.id,
+        companyName: formData.companyName || '',
+        adminEmail: result.adminEmail,
+        tempPassword: result.tempPassword,
+      });
+      onOpen();
     } catch (error) {
       console.error('Error creating tenant:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create tenant. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to create tenant. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    onClose();
+    // Navigate to the tenant detail page
+    if (successData) {
+      router.push(`/platform-admin/tenants/${successData.id}`);
     }
   };
 
@@ -171,6 +238,16 @@ export function TenantCreationWizard() {
         </CardBody>
       </Card>
 
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Step Content */}
       <Card>
         <CardBody className="p-6">
@@ -178,6 +255,7 @@ export function TenantCreationWizard() {
             <CompanyInfoStep
               data={formData}
               updateData={updateFormData}
+              errors={validationErrors}
             />
           )}
 
@@ -185,6 +263,7 @@ export function TenantCreationWizard() {
             <AdminUserStep
               data={formData}
               updateData={updateFormData}
+              errors={validationErrors}
             />
           )}
 
@@ -192,6 +271,7 @@ export function TenantCreationWizard() {
             <SubscriptionStep
               data={formData}
               updateData={updateFormData}
+              errors={validationErrors}
             />
           )}
 
@@ -210,7 +290,7 @@ export function TenantCreationWizard() {
           variant="flat"
           startContent={<ArrowLeft className="w-4 h-4" />}
           onPress={handleBack}
-          isDisabled={currentStep === 1}
+          isDisabled={currentStep === 1 || isSubmitting}
         >
           Back
         </Button>
@@ -224,6 +304,7 @@ export function TenantCreationWizard() {
             color="primary"
             endContent={<ArrowRight className="w-4 h-4" />}
             onPress={handleNext}
+            isDisabled={isSubmitting}
           >
             Next
           </Button>
@@ -238,6 +319,15 @@ export function TenantCreationWizard() {
           </Button>
         )}
       </div>
+
+      {/* Success Modal */}
+      {successData && (
+        <TenantCreationSuccessModal
+          isOpen={isOpen}
+          onClose={handleSuccessClose}
+          tenantData={successData}
+        />
+      )}
     </div>
   );
 }

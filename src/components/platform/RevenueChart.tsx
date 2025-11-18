@@ -1,18 +1,26 @@
 'use client';
 
-// Placeholder chart component - will be replaced with real charting library later
+interface RevenueDataPoint {
+  month: string;
+  mrr: number;
+  arr: number;
+}
 
-const mockData = [
-  { month: 'Jun', mrr: 38200000, arr: 458400000 },
-  { month: 'Jul', mrr: 39600000, arr: 475200000 },
-  { month: 'Aug', mrr: 41300000, arr: 495600000 },
-  { month: 'Sep', mrr: 42800000, arr: 513600000 },
-  { month: 'Oct', mrr: 44100000, arr: 529200000 },
-  { month: 'Nov', mrr: 46500000, arr: 558000000 },
-];
+interface RevenueChartProps {
+  data: RevenueDataPoint[];
+}
 
-export function RevenueChart() {
-  const maxValue = Math.max(...mockData.map(d => d.mrr));
+export function RevenueChart({ data }: RevenueChartProps) {
+  // Show message if no data
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <p className="text-gray-500 dark:text-gray-400 text-sm">No revenue data available</p>
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...data.map(d => d.mrr));
 
   return (
     <div className="space-y-4">
@@ -37,9 +45,9 @@ export function RevenueChart() {
 
         {/* Chart area */}
         <div className="ml-16 h-full flex items-end justify-between gap-3 pb-8">
-          {mockData.map((data, index) => {
-            const height = (data.mrr / maxValue) * 100;
-            const prevHeight = index > 0 ? (mockData[index - 1].mrr / maxValue) * 100 : height;
+          {data.map((dataPoint, index) => {
+            const height = (dataPoint.mrr / maxValue) * 100;
+            const prevHeight = index > 0 ? (data[index - 1].mrr / maxValue) * 100 : height;
 
             return (
               <div key={index} className="flex-1 relative h-full flex flex-col justify-end">
@@ -68,19 +76,19 @@ export function RevenueChart() {
                   >
                     {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                      <div className="font-medium">{data.month}</div>
+                      <div className="font-medium">{dataPoint.month}</div>
                       <div className="text-green-400">
-                        MRR: Rp {(data.mrr / 1000000).toFixed(1)}M
+                        MRR: Rp {(dataPoint.mrr / 1000000).toFixed(1)}M
                       </div>
                       <div className="text-gray-300 text-xs">
-                        ARR: Rp {(data.arr / 1000000).toFixed(0)}M
+                        ARR: Rp {(dataPoint.arr / 1000000).toFixed(0)}M
                       </div>
                     </div>
                   </div>
 
                   {/* Month label */}
                   <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {data.month}
+                    {dataPoint.month}
                   </div>
                 </div>
               </div>
@@ -94,16 +102,18 @@ export function RevenueChart() {
         <div>
           <p className="text-xs text-gray-500 dark:text-gray-400">Current MRR</p>
           <p className="text-lg font-bold text-gray-900 dark:text-white">
-            Rp {(mockData[mockData.length - 1].mrr / 1000000).toFixed(1)}M
+            Rp {(data[data.length - 1].mrr / 1000000).toFixed(1)}M
           </p>
-          <p className="text-xs text-green-600">
-            +{(((mockData[mockData.length - 1].mrr - mockData[0].mrr) / mockData[0].mrr) * 100).toFixed(1)}% growth
-          </p>
+          {data.length > 1 && data[0].mrr > 0 && (
+            <p className="text-xs text-green-600">
+              +{(((data[data.length - 1].mrr - data[0].mrr) / data[0].mrr) * 100).toFixed(1)}% growth
+            </p>
+          )}
         </div>
         <div>
           <p className="text-xs text-gray-500 dark:text-gray-400">Current ARR</p>
           <p className="text-lg font-bold text-gray-900 dark:text-white">
-            Rp {(mockData[mockData.length - 1].arr / 1000000).toFixed(0)}M
+            Rp {(data[data.length - 1].arr / 1000000).toFixed(0)}M
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             12x MRR
