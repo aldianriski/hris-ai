@@ -203,15 +203,17 @@ export async function logDocumentAction(
 export async function logPerformanceAction(
   userContext: UserContext,
   request: NextRequest,
-  action: 'created' | 'submitted' | 'acknowledged' | 'deleted',
+  action: 'review_created' | 'review_updated' | 'review_submitted' | 'review_completed' | 'review_deleted',
   reviewId: string,
-  employeeName: string
+  employeeName: string,
+  metadata?: Record<string, any>
 ): Promise<void> {
   await createAuditLog(userContext, request, {
     action: `performance.${action}`,
     resourceType: 'performance_review',
     resourceId: reviewId,
     resourceName: employeeName,
+    metadata,
     severity: 'info',
   });
 }
