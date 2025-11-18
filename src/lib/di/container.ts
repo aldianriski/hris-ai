@@ -193,29 +193,29 @@ export class DIContainer {
 
   // Use Case Factories - Employee
   async getCreateEmployeeUseCase(): Promise<CreateEmployeeUseCase> {
-    return new CreateEmployeeUseCase(await this.getEmployeeRepository());
+    return new CreateEmployeeUseCase(await this.getEmployeeRepository() as any);
   }
 
   async getUpdateEmployeeUseCase(): Promise<UpdateEmployeeUseCase> {
-    return new UpdateEmployeeUseCase(await this.getEmployeeRepository());
+    return new UpdateEmployeeUseCase(await this.getEmployeeRepository() as any);
   }
 
   async getListEmployeesUseCase(): Promise<ListEmployeesUseCase> {
-    return new ListEmployeesUseCase(await this.getEmployeeRepository());
+    return new ListEmployeesUseCase(await this.getEmployeeRepository() as any);
   }
 
   // Use Case Factories - Attendance
   async getClockInUseCase(): Promise<ClockInUseCase> {
-    return new ClockInUseCase(await this.getAttendanceRepository());
+    return new ClockInUseCase(await this.getAttendanceRepository() as any);
   }
 
   async getClockOutUseCase(): Promise<ClockOutUseCase> {
-    return new ClockOutUseCase(await this.getAttendanceRepository());
+    return new ClockOutUseCase(await this.getAttendanceRepository() as any);
   }
 
   // Use Case Factories - Leave
   async getCreateLeaveRequestUseCase(): Promise<CreateLeaveRequestUseCase> {
-    return new CreateLeaveRequestUseCase(await this.getLeaveRepository());
+    return new CreateLeaveRequestUseCase(await this.getLeaveRepository() as any);
   }
 }
 

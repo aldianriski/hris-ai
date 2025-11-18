@@ -75,7 +75,7 @@ export class SupabaseOrganizationRepository implements IOrganizationRepository {
     return topLevel.map((dept) => ({
       ...dept,
       children: departments.filter((d) => d.parentId === dept.id),
-    }));
+    })) as Array<Department & { children: Department[] }>;
   }
 
   async createDepartment(dept: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department> {
