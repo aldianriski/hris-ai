@@ -12,7 +12,8 @@ import {
   Settings,
   Zap,
   LogOut,
-  Flag
+  Flag,
+  Receipt
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/auth/use-permissions';
 import { getRoleDisplayName, type PlatformRole } from '@/lib/auth/permissions';
@@ -49,6 +50,12 @@ const navigationConfig = [
     href: '/subscription-plans',
     icon: CreditCard,
     roles: ['super_admin', 'billing_admin'] as PlatformRole[]
+  },
+  {
+    name: 'Invoices',
+    href: '/invoices',
+    icon: Receipt,
+    roles: ['super_admin', 'billing_admin', 'platform_admin'] as PlatformRole[]
   },
   {
     name: 'Support',
