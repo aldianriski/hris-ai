@@ -48,13 +48,13 @@ const updateEmployeeSchema = z.object({
  * Get employee by ID
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
 
-    const repository = container.getEmployeeRepository();
+    const repository = await container.getEmployeeRepository();
     const employee = await repository.findById(id);
 
     if (!employee) {
@@ -98,8 +98,15 @@ export async function PATCH(
     if (validatedData.probationEndDate) updates.probationEndDate = new Date(validatedData.probationEndDate);
     if (validatedData.terminationDate) updates.terminationDate = new Date(validatedData.terminationDate);
 
-    const updateEmployee = container.getUpdateEmployeeUseCase();
-    const employee = await updateEmployee.execute(id, updates);
+    // Get existing employee to get employerId
+    const repository = await container.getEmployeeRepository();
+    const existing = await repository.findById(id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    const updateEmployee = await container.getUpdateEmployeeUseCase();
+    const employee = await updateEmployee.execute(id, existing.employerId, updates);
 
     return NextResponse.json(employee, { status: 200 });
   } catch (error) {
@@ -124,13 +131,13 @@ export async function PATCH(
  * Delete employee (soft delete by marking as inactive)
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
 
-    const repository = container.getEmployeeRepository();
+    const repository = await container.getEmployeeRepository();
     await repository.delete(id);
 
     return NextResponse.json(

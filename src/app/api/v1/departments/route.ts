@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       parentId: searchParams.get('parentId') || undefined,
     };
 
-    const repository = container.getOrganizationRepository();
+    const repository = await container.getOrganizationRepository();
     const departments = await repository.findDepartmentsByEmployerId(employerId, options);
 
     return NextResponse.json({ departments }, { status: 200 });
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createDepartmentSchema.parse(body);
 
-    const repository = container.getOrganizationRepository();
-    const department = await repository.createDepartment(validatedData);
+    const repository = await container.getOrganizationRepository();
+    const department = await repository.createDepartment(validatedData as any);
 
     return NextResponse.json(department, { status: 201 });
   } catch (error) {

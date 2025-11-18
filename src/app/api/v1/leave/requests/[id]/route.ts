@@ -14,13 +14,13 @@ const updateLeaveRequestSchema = z.object({
  * Get leave request by ID
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
 
-    const repository = container.getLeaveRepository();
+    const repository = await container.getLeaveRepository();
     const leaveRequest = await repository.findRequestById(id);
 
     if (!leaveRequest) {
@@ -55,7 +55,7 @@ export async function PATCH(
     // Validate request body
     const validatedData = updateLeaveRequestSchema.parse(body);
 
-    const repository = container.getLeaveRepository();
+    const repository = await container.getLeaveRepository();
 
     // Add approval timestamp if status is approved or rejected
     const updates: any = { ...validatedData };
@@ -88,13 +88,13 @@ export async function PATCH(
  * Delete leave request
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
 
-    const repository = container.getLeaveRepository();
+    const repository = await container.getLeaveRepository();
     await repository.deleteRequest(id);
 
     return NextResponse.json(

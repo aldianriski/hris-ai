@@ -6,13 +6,13 @@ import { container } from '@/lib/di/container';
  * Get leave balance for an employee
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { employeeId: string } }
 ) {
   try {
     const { employeeId } = params;
 
-    const repository = container.getLeaveRepository();
+    const repository = await container.getLeaveRepository();
     const balance = await repository.findBalanceByEmployeeId(employeeId);
 
     if (!balance) {

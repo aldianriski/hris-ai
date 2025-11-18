@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const employerId = searchParams.get('employerId');
     const departmentId = searchParams.get('departmentId');
 
-    const repository = container.getOrganizationRepository();
+    const repository = await container.getOrganizationRepository();
 
     if (departmentId) {
       const positions = await repository.findPositionsByDepartment(departmentId);
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createPositionSchema.parse(body);
 
-    const repository = container.getOrganizationRepository();
-    const position = await repository.createPosition(validatedData);
+    const repository = await container.getOrganizationRepository();
+    const position = await repository.createPosition(validatedData as any);
 
     return NextResponse.json(position, { status: 201 });
   } catch (error) {

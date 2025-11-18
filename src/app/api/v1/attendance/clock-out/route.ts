@@ -24,10 +24,13 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = clockOutSchema.parse(body);
 
-    const clockOut = container.getClockOutUseCase();
+    const clockOut = await container.getClockOutUseCase();
+    const { recordId, clockOutGps } = validatedData;
     const record = await clockOut.execute({
-      ...validatedData,
-      clockOutTime: new Date(validatedData.clockOutTime),
+      attendanceId: recordId,
+      locationLat: clockOutGps?.latitude ?? 0,
+      locationLng: clockOutGps?.longitude ?? 0,
+      photoUrl: null,
     });
 
     return NextResponse.json(record, { status: 200 });

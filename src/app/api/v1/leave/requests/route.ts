@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get('employeeId');
     const employerId = searchParams.get('employerId');
 
-    const repository = container.getLeaveRepository();
+    const repository = await container.getLeaveRepository();
 
     if (employeeId) {
       const options = {
@@ -68,12 +68,13 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = createLeaveRequestSchema.parse(body);
 
-    const createLeaveRequest = container.getCreateLeaveRequestUseCase();
-    const leaveRequest = await createLeaveRequest.execute({
-      ...validatedData,
+    const { employerId, ...leaveData } = validatedData;
+    const createLeaveRequest = await container.getCreateLeaveRequestUseCase();
+    const leaveRequest = await createLeaveRequest.execute(employerId, {
+      ...leaveData,
       startDate: new Date(validatedData.startDate),
       endDate: new Date(validatedData.endDate),
-    });
+    } as any);
 
     return NextResponse.json(leaveRequest, { status: 201 });
   } catch (error) {

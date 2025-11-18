@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
     };
 
-    const repository = container.getComplianceRepository();
+    const repository = await container.getComplianceRepository();
     const result = await repository.findAlertsByEmployerId(employerId, options);
 
     return NextResponse.json(result, { status: 200 });

@@ -89,7 +89,11 @@ export type PTKPStatus = (typeof PTKP_STATUS)[keyof typeof PTKP_STATUS];
 /**
  * PTKP values for 2025 (in IDR)
  */
-export const PTKP_VALUES: Record<PTKPStatus, number> = {
+export const PTKP_VALUES: Record<PTKPStatus, number> & {
+  SELF: number;
+  MARRIED: number;
+  DEPENDENT: number;
+} = {
   [PTKP_STATUS.TK_0]: 54_000_000,
   [PTKP_STATUS.TK_1]: 58_500_000,
   [PTKP_STATUS.TK_2]: 63_000_000,
@@ -98,28 +102,38 @@ export const PTKP_VALUES: Record<PTKPStatus, number> = {
   [PTKP_STATUS.K_1]: 63_000_000,
   [PTKP_STATUS.K_2]: 67_500_000,
   [PTKP_STATUS.K_3]: 72_000_000,
+  SELF: 54_000_000, // Base PTKP for self
+  MARRIED: 4_500_000, // Additional PTKP for married status
+  DEPENDENT: 4_500_000, // Additional PTKP per dependent (max 3)
 };
 
 /**
  * BPJS rates for 2025
  */
 export const BPJS_RATES = {
-  JKK: 0.0024, // Work Accident
-  JKM: 0.003, // Death
-  JHT: 0.057, // Old Age (3.7% employer + 2% employee)
-  JP: 0.03, // Pension (2% employer + 1% employee)
-  KESEHATAN: 0.05, // Health (4% employer + 1% employee)
-  MAX_BASE: 13_710_732, // Maximum base salary for BPJS calculation
+  KESEHATAN: {
+    EMPLOYEE_RATE: 0.01, // 1% employee contribution
+    EMPLOYER_RATE: 0.04, // 4% employer contribution
+    MAX_SALARY: 12_000_000, // Maximum salary base for BPJS Kesehatan
+  },
+  KETENAGAKERJAAN: {
+    JKM_EMPLOYER_RATE: 0.003, // 0.3% Death insurance (employer only)
+    JHT_EMPLOYEE_RATE: 0.02, // 2% Old age insurance (employee)
+    JHT_EMPLOYER_RATE: 0.037, // 3.7% Old age insurance (employer)
+    JP_EMPLOYEE_RATE: 0.01, // 1% Pension (employee)
+    JP_EMPLOYER_RATE: 0.02, // 2% Pension (employer)
+    MAX_SALARY: 13_710_732, // Maximum salary base for BPJS Ketenagakerjaan
+  },
 } as const;
 
 /**
  * PPh21 tax brackets for 2025
  */
 export const TAX_BRACKETS = [
-  { limit: 60_000_000, rate: 0.05 },
-  { limit: 250_000_000, rate: 0.15 },
-  { limit: 500_000_000, rate: 0.25 },
-  { limit: Infinity, rate: 0.3 },
+  { limit: 60_000_000, max: 60_000_000, rate: 0.05 },
+  { limit: 250_000_000, max: 250_000_000, rate: 0.15 },
+  { limit: 500_000_000, max: 500_000_000, rate: 0.25 },
+  { limit: Infinity, max: Infinity, rate: 0.3 },
 ] as const;
 
 /**

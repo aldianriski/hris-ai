@@ -64,12 +64,14 @@ export async function GET(request: NextRequest) {
       position: searchParams.get('position') || undefined,
       employmentType: searchParams.get('employmentType') || undefined,
       search: searchParams.get('search') || undefined,
+      sortBy: (searchParams.get('sortBy') as any) || 'fullName',
+      sortOrder: (searchParams.get('sortOrder') as any) || 'asc',
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
       offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
     };
 
-    const listEmployees = container.getListEmployeesUseCase();
-    const result = await listEmployees.execute(employerId, options);
+    const listEmployees = await container.getListEmployeesUseCase();
+    const result = await listEmployees.execute(employerId, options as any);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
@@ -92,9 +94,10 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = createEmployeeSchema.parse(body);
 
-    // Convert date strings to Date objects
+    // Extract employerId and convert date strings to Date objects
+    const { employerId, ...rest } = validatedData;
     const employeeData = {
-      ...validatedData,
+      ...rest,
       dateOfBirth: new Date(validatedData.dateOfBirth),
       joinDate: new Date(validatedData.joinDate),
       contractStartDate: validatedData.contractStartDate ? new Date(validatedData.contractStartDate) : undefined,
@@ -102,8 +105,8 @@ export async function POST(request: NextRequest) {
       probationEndDate: validatedData.probationEndDate ? new Date(validatedData.probationEndDate) : undefined,
     };
 
-    const createEmployee = container.getCreateEmployeeUseCase();
-    const employee = await createEmployee.execute(employeeData);
+    const createEmployee = await container.getCreateEmployeeUseCase();
+    const employee = await createEmployee.execute(employerId, employeeData as any);
 
     return NextResponse.json(employee, { status: 201 });
   } catch (error) {

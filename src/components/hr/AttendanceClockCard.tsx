@@ -35,7 +35,7 @@ export function AttendanceClockCard({
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        (_position) => {
           setLocation('Lokasi terdeteksi');
         },
         () => {

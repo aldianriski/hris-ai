@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
     };
 
-    const repository = container.getPayrollRepository();
+    const repository = await container.getPayrollRepository();
     const result = await repository.findPeriodsByEmployerId(employerId, options);
 
     return NextResponse.json(result, { status: 200 });
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       paymentDate: new Date(validatedData.paymentDate),
     };
 
-    const repository = container.getPayrollRepository();
-    const period = await repository.createPeriod(periodData);
+    const repository = await container.getPayrollRepository();
+    const period = await repository.createPeriod(periodData as any);
 
     return NextResponse.json(period, { status: 201 });
   } catch (error) {

@@ -11,16 +11,16 @@ export async function GET(request: NextRequest) {
     const periodId = searchParams.get('periodId');
     const employeeId = searchParams.get('employeeId');
 
-    const repository = container.getPayrollRepository();
+    const repository = await container.getPayrollRepository();
 
     if (periodId) {
-      const summaries = await repository.findSummariesByPeriod(periodId);
+      const summaries = await repository.findSummariesByPeriodId(periodId);
       return NextResponse.json({ summaries }, { status: 200 });
     }
 
     if (employeeId) {
       const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
-      const summaries = await repository.findSummariesByEmployee(employeeId, year);
+      const summaries = await repository.findSummariesByEmployeeId(employeeId, { year });
       return NextResponse.json({ summaries }, { status: 200 });
     }
 

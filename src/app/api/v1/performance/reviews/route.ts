@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get('employeeId');
     const reviewerId = searchParams.get('reviewerId');
 
-    const repository = container.getPerformanceRepository();
+    const repository = await container.getPerformanceRepository();
 
     if (employeeId) {
       const options = {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (reviewerId) {
-      const reviews = await repository.findReviewsByReviewerId(reviewerId);
+      const reviews = await repository.findPendingReviewsByReviewer(reviewerId);
       return NextResponse.json({ reviews }, { status: 200 });
     }
 
@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       status: 'draft' as const,
     };
 
-    const repository = container.getPerformanceRepository();
-    const review = await repository.createReview(reviewData);
+    const repository = await container.getPerformanceRepository();
+    const review = await repository.createReview(reviewData as any);
 
     return NextResponse.json(review, { status: 201 });
   } catch (error) {

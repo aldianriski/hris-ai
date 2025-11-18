@@ -5,10 +5,8 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Home,
-  Users,
   Clock,
   FileText,
-  LayoutDashboard,
   CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

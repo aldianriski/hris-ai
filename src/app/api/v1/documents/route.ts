@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get('employeeId');
     const employerId = searchParams.get('employerId');
 
-    const repository = container.getDocumentRepository();
+    const repository = await container.getDocumentRepository();
 
     if (employeeId) {
       const options = {
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
       verifiedAt: null,
     };
 
-    const repository = container.getDocumentRepository();
-    const document = await repository.createDocument(documentData);
+    const repository = await container.getDocumentRepository();
+    const document = await repository.createDocument(documentData as any);
 
     return NextResponse.json(document, { status: 201 });
   } catch (error) {

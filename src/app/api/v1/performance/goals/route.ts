@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       year: searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined,
     };
 
-    const repository = container.getPerformanceRepository();
+    const repository = await container.getPerformanceRepository();
     const goals = await repository.findGoalsByEmployeeId(employeeId, options);
 
     return NextResponse.json({ goals }, { status: 200 });

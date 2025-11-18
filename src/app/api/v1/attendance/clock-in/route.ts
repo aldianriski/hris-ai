@@ -26,10 +26,16 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = clockInSchema.parse(body);
 
-    const clockIn = container.getClockInUseCase();
-    const record = await clockIn.execute({
-      ...validatedData,
-      clockInTime: new Date(validatedData.clockInTime),
+    const clockIn = await container.getClockInUseCase();
+    const { employerId, employeeId, clockInGps } = validatedData;
+    const record = await clockIn.execute(employerId, {
+      employeeId,
+      date: new Date(validatedData.clockInTime),
+      locationLat: clockInGps?.latitude ?? 0,
+      locationLng: clockInGps?.longitude ?? 0,
+      locationAddress: validatedData.clockInLocation ?? null,
+      photoUrl: null,
+      deviceInfo: null,
     });
 
     return NextResponse.json(record, { status: 201 });

@@ -48,8 +48,8 @@ export const attendanceService = {
    * Get today's attendance record for employee
    */
   getTodayRecord: async (employeeId: string): Promise<AttendanceRecord | null> => {
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0]!;
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]!;
 
     const response = await apiClient.get<{ records: AttendanceRecord[] }>('/attendance', {
       employeeId,
@@ -57,6 +57,6 @@ export const attendanceService = {
       endDate: tomorrow,
     });
 
-    return response.records.length > 0 ? response.records[0] : null;
+    return response.records.length > 0 ? (response.records[0] ?? null) : null;
   },
 };

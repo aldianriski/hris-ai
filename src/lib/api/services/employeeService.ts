@@ -6,7 +6,7 @@ export const employeeService = {
    * Get list of employees
    */
   list: async (params: ListEmployeesParams): Promise<ListEmployeesResponse> => {
-    return apiClient.get('/employees', params as Record<string, string>);
+    return apiClient.get('/employees', params as unknown as Record<string, string>);
   },
 
   /**

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const repository = container.getAttendanceRepository();
+    const repository = await container.getAttendanceRepository();
 
     // If employeeId and date range provided, get records for that employee
     if (employeeId && startDate && endDate) {

@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   SupabaseEmployeeRepository,
   SupabaseAttendanceRepository,
@@ -20,16 +20,16 @@ import { AISentimentAnalyzer } from '@/modules/hr/infrastructure/services/AISent
 import { AIDocumentExtractor } from '@/modules/hr/infrastructure/services/AIDocumentExtractor';
 
 // Use Cases - Employee
-import { CreateEmployee } from '@/modules/hr/application/use-cases/CreateEmployee';
-import { UpdateEmployee } from '@/modules/hr/application/use-cases/UpdateEmployee';
-import { ListEmployees } from '@/modules/hr/application/use-cases/ListEmployees';
+import { CreateEmployeeUseCase } from '@/modules/hr/application/use-cases/CreateEmployee';
+import { UpdateEmployeeUseCase } from '@/modules/hr/application/use-cases/UpdateEmployee';
+import { ListEmployeesUseCase } from '@/modules/hr/application/use-cases/ListEmployees';
 
 // Use Cases - Attendance
-import { ClockIn } from '@/modules/hr/application/use-cases/ClockIn';
-import { ClockOut } from '@/modules/hr/application/use-cases/ClockOut';
+import { ClockInUseCase } from '@/modules/hr/application/use-cases/ClockIn';
+import { ClockOutUseCase } from '@/modules/hr/application/use-cases/ClockOut';
 
 // Use Cases - Leave
-import { CreateLeaveRequest } from '@/modules/hr/application/use-cases/CreateLeaveRequest';
+import { CreateLeaveRequestUseCase } from '@/modules/hr/application/use-cases/CreateLeaveRequest';
 
 /**
  * Dependency Injection Container
@@ -67,65 +67,65 @@ export class DIContainer {
   }
 
   // Repository Factories
-  getEmployeeRepository(): SupabaseEmployeeRepository {
+  async getEmployeeRepository(): Promise<SupabaseEmployeeRepository> {
     if (!this.employeeRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.employeeRepository = new SupabaseEmployeeRepository(supabase);
     }
     return this.employeeRepository;
   }
 
-  getAttendanceRepository(): SupabaseAttendanceRepository {
+  async getAttendanceRepository(): Promise<SupabaseAttendanceRepository> {
     if (!this.attendanceRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.attendanceRepository = new SupabaseAttendanceRepository(supabase);
     }
     return this.attendanceRepository;
   }
 
-  getLeaveRepository(): SupabaseLeaveRepository {
+  async getLeaveRepository(): Promise<SupabaseLeaveRepository> {
     if (!this.leaveRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.leaveRepository = new SupabaseLeaveRepository(supabase);
     }
     return this.leaveRepository;
   }
 
-  getPayrollRepository(): SupabasePayrollRepository {
+  async getPayrollRepository(): Promise<SupabasePayrollRepository> {
     if (!this.payrollRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.payrollRepository = new SupabasePayrollRepository(supabase);
     }
     return this.payrollRepository;
   }
 
-  getPerformanceRepository(): SupabasePerformanceRepository {
+  async getPerformanceRepository(): Promise<SupabasePerformanceRepository> {
     if (!this.performanceRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.performanceRepository = new SupabasePerformanceRepository(supabase);
     }
     return this.performanceRepository;
   }
 
-  getDocumentRepository(): SupabaseDocumentRepository {
+  async getDocumentRepository(): Promise<SupabaseDocumentRepository> {
     if (!this.documentRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.documentRepository = new SupabaseDocumentRepository(supabase);
     }
     return this.documentRepository;
   }
 
-  getOrganizationRepository(): SupabaseOrganizationRepository {
+  async getOrganizationRepository(): Promise<SupabaseOrganizationRepository> {
     if (!this.organizationRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.organizationRepository = new SupabaseOrganizationRepository(supabase);
     }
     return this.organizationRepository;
   }
 
-  getComplianceRepository(): SupabaseComplianceRepository {
+  async getComplianceRepository(): Promise<SupabaseComplianceRepository> {
     if (!this.complianceRepository) {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       this.complianceRepository = new SupabaseComplianceRepository(supabase);
     }
     return this.complianceRepository;
@@ -192,41 +192,30 @@ export class DIContainer {
   }
 
   // Use Case Factories - Employee
-  getCreateEmployeeUseCase(): CreateEmployee {
-    return new CreateEmployee(this.getEmployeeRepository());
+  async getCreateEmployeeUseCase(): Promise<CreateEmployeeUseCase> {
+    return new CreateEmployeeUseCase(await this.getEmployeeRepository());
   }
 
-  getUpdateEmployeeUseCase(): UpdateEmployee {
-    return new UpdateEmployee(this.getEmployeeRepository());
+  async getUpdateEmployeeUseCase(): Promise<UpdateEmployeeUseCase> {
+    return new UpdateEmployeeUseCase(await this.getEmployeeRepository());
   }
 
-  getListEmployeesUseCase(): ListEmployees {
-    return new ListEmployees(this.getEmployeeRepository());
+  async getListEmployeesUseCase(): Promise<ListEmployeesUseCase> {
+    return new ListEmployeesUseCase(await this.getEmployeeRepository());
   }
 
   // Use Case Factories - Attendance
-  getClockInUseCase(): ClockIn {
-    return new ClockIn(
-      this.getAttendanceRepository(),
-      this.getEmployeeRepository(),
-      this.getAIAnomalyDetector()
-    );
+  async getClockInUseCase(): Promise<ClockInUseCase> {
+    return new ClockInUseCase(await this.getAttendanceRepository());
   }
 
-  getClockOutUseCase(): ClockOut {
-    return new ClockOut(
-      this.getAttendanceRepository(),
-      this.getAIAnomalyDetector()
-    );
+  async getClockOutUseCase(): Promise<ClockOutUseCase> {
+    return new ClockOutUseCase(await this.getAttendanceRepository());
   }
 
   // Use Case Factories - Leave
-  getCreateLeaveRequestUseCase(): CreateLeaveRequest {
-    return new CreateLeaveRequest(
-      this.getLeaveRepository(),
-      this.getEmployeeRepository(),
-      this.getAILeaveApprovalEngine()
-    );
+  async getCreateLeaveRequestUseCase(): Promise<CreateLeaveRequestUseCase> {
+    return new CreateLeaveRequestUseCase(await this.getLeaveRepository());
   }
 }
 
