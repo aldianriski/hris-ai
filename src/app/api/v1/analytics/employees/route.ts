@@ -10,6 +10,7 @@ import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
 import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { getCached, analyticsKey, CacheTTL } from '@/lib/cache';
 
 const employeeAnalyticsSchema = z.object({
   startDate: z.string().datetime().optional(),
@@ -27,24 +28,35 @@ async function handler(request: NextRequest) {
   const params = Object.fromEntries(searchParams.entries());
   const validatedParams = employeeAnalyticsSchema.parse(params);
 
-  const supabase = await createClient();
-
   try {
-    // Base query
-    let baseQuery = supabase
-      .from('employees')
-      .select('*')
-      .eq('employer_id', userContext.companyId);
+    // Create cache key based on parameters
+    const cacheKey = analyticsKey(
+      userContext.companyId,
+      'employees',
+      JSON.stringify(validatedParams)
+    );
 
-    if (validatedParams.department) {
-      baseQuery = baseQuery.eq('department', validatedParams.department);
-    }
+    // Use cache for employee analytics (15 min TTL)
+    const analytics = await getCached(
+      cacheKey,
+      async () => {
+        const supabase = await createClient();
 
-    const { data: employees, error } = await baseQuery;
+        // Base query
+        let baseQuery = supabase
+          .from('employees')
+          .select('*')
+          .eq('employer_id', userContext.companyId);
 
-    if (error) {
-      throw error;
-    }
+        if (validatedParams.department) {
+          baseQuery = baseQuery.eq('department', validatedParams.department);
+        }
+
+        const { data: employees, error } = await baseQuery;
+
+        if (error) {
+          throw error;
+        }
 
     // Calculate headcount by status
     const headcountByStatus = {
@@ -111,31 +123,34 @@ async function handler(request: NextRequest) {
       ? Math.round((terminations / averageEmployees) * 100 * 10) / 10
       : 0;
 
-    const analytics = {
-      headcount: {
-        total: employees?.length || 0,
-        byStatus: headcountByStatus,
+        return {
+          headcount: {
+            total: employees?.length || 0,
+            byStatus: headcountByStatus,
+          },
+          distribution: {
+            byDepartment: departmentDistribution,
+            byPosition: positionDistribution,
+          },
+          tenure: {
+            averageMonths: averageTenure,
+            averageYears: Math.round(averageTenure / 12 * 10) / 10,
+          },
+          growth: {
+            period: {
+              start: startDate.toISOString().split('T')[0],
+              end: endDate.toISOString().split('T')[0],
+            },
+            newHires,
+            terminations,
+            netGrowth: newHires - terminations,
+            turnoverRate: `${turnoverRate}%`,
+          },
+          lastUpdated: new Date().toISOString(),
+        };
       },
-      distribution: {
-        byDepartment: departmentDistribution,
-        byPosition: positionDistribution,
-      },
-      tenure: {
-        averageMonths: averageTenure,
-        averageYears: Math.round(averageTenure / 12 * 10) / 10,
-      },
-      growth: {
-        period: {
-          start: startDate.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0],
-        },
-        newHires,
-        terminations,
-        netGrowth: newHires - terminations,
-        turnoverRate: `${turnoverRate}%`,
-      },
-      lastUpdated: new Date().toISOString(),
-    };
+      CacheTTL.MEDIUM // 15 minutes
+    );
 
     return successResponse(analytics);
   } catch (error) {

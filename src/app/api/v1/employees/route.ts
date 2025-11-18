@@ -13,6 +13,7 @@ import { requireAuth, requireHR } from '@/lib/middleware/auth';
 import { standardRateLimit } from '@/lib/middleware/rateLimit';
 import { PaginationSchema } from '@/lib/api/types';
 import { logEmployeeAction } from '@/lib/utils/auditLog';
+import { getCached, employeeListKey, invalidateEmployeeCache, CacheTTL } from '@/lib/cache';
 
 // ============================================
 // GET /api/v1/employees - List employees
@@ -37,62 +38,79 @@ async function listHandler(request: NextRequest) {
   const params = Object.fromEntries(searchParams.entries());
   const validatedParams = listEmployeesSchema.parse(params);
 
-  const supabase = await createClient();
+  // Create cache key based on filters
+  const filterKey = JSON.stringify({
+    status: validatedParams.status,
+    department: validatedParams.department,
+    position: validatedParams.position,
+    employmentType: validatedParams.employmentType,
+    search: validatedParams.search,
+    sortBy: validatedParams.sortBy,
+    sortOrder: validatedParams.sortOrder,
+    page: validatedParams.page,
+    limit: validatedParams.limit,
+  });
 
-  // Build query
-  let query = supabase
-    .from('employees')
-    .select('*', { count: 'exact' })
-    .eq('employer_id', userContext.companyId);
+  // Use cache for employee list (10 min TTL)
+  const result = await getCached(
+    employeeListKey(userContext.companyId, filterKey),
+    async () => {
+      const supabase = await createClient();
 
-  // Apply filters
-  if (validatedParams.status) {
-    query = query.eq('employment_status', validatedParams.status);
-  }
+      // Build query
+      let query = supabase
+        .from('employees')
+        .select('*', { count: 'exact' })
+        .eq('employer_id', userContext.companyId);
 
-  if (validatedParams.department) {
-    query = query.eq('department', validatedParams.department);
-  }
+      // Apply filters
+      if (validatedParams.status) {
+        query = query.eq('employment_status', validatedParams.status);
+      }
 
-  if (validatedParams.position) {
-    query = query.eq('position', validatedParams.position);
-  }
+      if (validatedParams.department) {
+        query = query.eq('department', validatedParams.department);
+      }
 
-  if (validatedParams.employmentType) {
-    query = query.eq('employment_type', validatedParams.employmentType);
-  }
+      if (validatedParams.position) {
+        query = query.eq('position', validatedParams.position);
+      }
 
-  if (validatedParams.search) {
-    const searchPattern = `%${validatedParams.search}%`;
-    query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},employee_number.ilike.${searchPattern}`);
-  }
+      if (validatedParams.employmentType) {
+        query = query.eq('employment_type', validatedParams.employmentType);
+      }
 
-  // Apply sorting
-  if (validatedParams.sortBy) {
-    query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
-  } else {
-    query = query.order('created_at', { ascending: false });
-  }
+      if (validatedParams.search) {
+        const searchPattern = `%${validatedParams.search}%`;
+        query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},employee_number.ilike.${searchPattern}`);
+      }
 
-  // Apply pagination
-  const from = (validatedParams.page - 1) * validatedParams.limit;
-  const to = from + validatedParams.limit - 1;
-  query = query.range(from, to);
+      // Apply sorting
+      if (validatedParams.sortBy) {
+        query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
 
-  const { data, error, count } = await query;
+      // Apply pagination
+      const from = (validatedParams.page - 1) * validatedParams.limit;
+      const to = from + validatedParams.limit - 1;
+      query = query.range(from, to);
 
-  if (error) {
-    return errorResponse(
-      'SRV_9002',
-      'Failed to fetch employees',
-      500,
-      { details: error.message }
-    );
-  }
+      const { data, error, count } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return { data: data || [], count: count || 0 };
+    },
+    CacheTTL.MEDIUM // 15 minutes
+  );
 
   return paginatedResponse(
-    data || [],
-    count || 0,
+    result.data,
+    result.count,
     validatedParams.page,
     validatedParams.limit
   );
@@ -222,6 +240,9 @@ async function createHandler(request: NextRequest) {
       after: employee,
     }
   );
+
+  // Invalidate employee caches
+  await invalidateEmployeeCache(employee.id, userContext.companyId);
 
   // TODO: Trigger employee.created webhook
 

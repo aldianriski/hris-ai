@@ -9,14 +9,19 @@ import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
 import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { getCached, dashboardKey, CacheTTL } from '@/lib/cache';
 
 async function handler(request: NextRequest) {
   await standardRateLimit(request);
 
   const userContext = await requireAuth(request);
-  const supabase = await createClient();
 
   try {
+    // Use cache for dashboard analytics (5 min TTL)
+    const analytics = await getCached(
+      dashboardKey(userContext.companyId, userContext.userId),
+      async () => {
+        const supabase = await createClient();
     // Get total employees
     const { count: totalEmployees } = await supabase
       .from('employees')
@@ -87,35 +92,38 @@ async function handler(request: NextRequest) {
       .eq('employer_id', userContext.companyId)
       .gte('hire_date', thirtyDaysAgo.toISOString().split('T')[0]);
 
-    const analytics = {
-      employees: {
-        total: totalEmployees || 0,
-        active: totalEmployees || 0,
-        onLeave: employeesOnLeave || 0,
-        recentHires: recentHires || 0,
+        return {
+          employees: {
+            total: totalEmployees || 0,
+            active: totalEmployees || 0,
+            onLeave: employeesOnLeave || 0,
+            recentHires: recentHires || 0,
+          },
+          attendance: {
+            todayCount: attendanceToday || 0,
+            rate: attendanceRate,
+          },
+          leave: {
+            pendingRequests: pendingLeaveRequests || 0,
+          },
+          performance: {
+            pendingReviews: pendingReviews || 0,
+          },
+          payroll: {
+            currentMonth: {
+              status: currentPayroll?.status || 'draft',
+              totalAmount: currentPayroll?.total_net_salary || 0,
+              employeeCount: currentPayroll?.total_employees || 0,
+            },
+          },
+          documents: {
+            unverified: unverifiedDocuments || 0,
+          },
+          lastUpdated: new Date().toISOString(),
+        };
       },
-      attendance: {
-        todayCount: attendanceToday || 0,
-        rate: attendanceRate,
-      },
-      leave: {
-        pendingRequests: pendingLeaveRequests || 0,
-      },
-      performance: {
-        pendingReviews: pendingReviews || 0,
-      },
-      payroll: {
-        currentMonth: {
-          status: currentPayroll?.status || 'draft',
-          totalAmount: currentPayroll?.total_net_salary || 0,
-          employeeCount: currentPayroll?.total_employees || 0,
-        },
-      },
-      documents: {
-        unverified: unverifiedDocuments || 0,
-      },
-      lastUpdated: new Date().toISOString(),
-    };
+      CacheTTL.SHORT // 5 minutes
+    );
 
     return successResponse(analytics);
   } catch (error) {
