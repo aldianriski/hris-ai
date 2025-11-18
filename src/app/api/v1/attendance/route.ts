@@ -1,57 +1,93 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/di/container';
-
 /**
  * GET /api/v1/attendance
- * Get attendance records with filtering
+ * List attendance records with filtering and pagination
  */
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
 
-    const employeeId = searchParams.get('employeeId');
-    const employerId = searchParams.get('employerId');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { paginatedResponse, errorResponse } from '@/lib/api/response';
+import { withErrorHandler } from '@/lib/middleware/errorHandler';
+import { requireAuth } from '@/lib/middleware/auth';
+import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { PaginationSchema, DateRangeSchema } from '@/lib/api/types';
 
-    const repository = await container.getAttendanceRepository();
+const listAttendanceSchema = z.object({
+  ...PaginationSchema.shape,
+  ...DateRangeSchema.shape,
+  employeeId: z.string().uuid().optional(),
+  status: z.enum(['present', 'late', 'absent', 'leave', 'holiday']).optional(),
+  date: z.string().optional(), // Specific date (YYYY-MM-DD)
+});
 
-    // If employeeId and date range provided, get records for that employee
-    if (employeeId && startDate && endDate) {
-      const records = await repository.findByEmployeeAndDateRange(
-        employeeId,
-        new Date(startDate),
-        new Date(endDate)
-      );
-      return NextResponse.json({ records }, { status: 200 });
+async function handler(request: NextRequest) {
+  await standardRateLimit(request);
+
+  const userContext = await requireAuth(request);
+
+  // Parse query parameters
+  const { searchParams } = new URL(request.url);
+  const params = Object.fromEntries(searchParams.entries());
+  const validatedParams = listAttendanceSchema.parse(params);
+
+  const supabase = await createClient();
+
+  // Build query
+  let query = supabase
+    .from('attendance')
+    .select('*', { count: 'exact' })
+    .eq('employer_id', userContext.companyId);
+
+  // Apply filters
+  if (validatedParams.employeeId) {
+    query = query.eq('employee_id', validatedParams.employeeId);
+  }
+
+  if (validatedParams.status) {
+    query = query.eq('status', validatedParams.status);
+  }
+
+  if (validatedParams.date) {
+    query = query.eq('date', validatedParams.date);
+  } else {
+    // Apply date range if no specific date
+    if (validatedParams.startDate) {
+      query = query.gte('date', validatedParams.startDate.split('T')[0]);
     }
-
-    // If employerId provided, get records for the organization
-    if (employerId) {
-      const date = searchParams.get('date');
-      if (!date) {
-        return NextResponse.json(
-          { error: 'date parameter is required when filtering by employerId' },
-          { status: 400 }
-        );
-      }
-
-      const records = await repository.findByEmployerAndDate(
-        employerId,
-        new Date(date)
-      );
-      return NextResponse.json({ records }, { status: 200 });
+    if (validatedParams.endDate) {
+      query = query.lte('date', validatedParams.endDate.split('T')[0]);
     }
+  }
 
-    return NextResponse.json(
-      { error: 'Either employeeId with date range, or employerId with date is required' },
-      { status: 400 }
-    );
-  } catch (error) {
-    console.error('Failed to get attendance records:', error);
-    return NextResponse.json(
-      { error: 'Failed to get attendance records', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Apply sorting
+  if (validatedParams.sortBy) {
+    query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
+  } else {
+    query = query.order('date', { ascending: false }).order('clock_in_time', { ascending: false });
+  }
+
+  // Apply pagination
+  const from = (validatedParams.page - 1) * validatedParams.limit;
+  const to = from + validatedParams.limit - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to fetch attendance records',
+      500,
+      { details: error.message }
     );
   }
+
+  return paginatedResponse(
+    data || [],
+    count || 0,
+    validatedParams.page,
+    validatedParams.limit
+  );
 }
+
+export const GET = withErrorHandler(handler);
