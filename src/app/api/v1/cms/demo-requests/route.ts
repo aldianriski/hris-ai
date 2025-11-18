@@ -9,7 +9,7 @@ import type { CreateDemoRequestInput } from '@/lib/db/cms-schema';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Check auth
     const { data: { user } } = await supabase.auth.getUser();
@@ -50,11 +50,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body: CreateDemoRequestInput = await request.json();
 
     // Validate required fields
-    if (!body.company_name || !body.contact_name || !body.email) {
+    if (!body.company_name || !body.name || !body.email) {
       return NextResponse.json(
         {
           success: false,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract UTM params and referrer from headers if not provided
+    // Extract UTM params from referrer headers if not provided
     const referer = request.headers.get('referer') || '';
     if (!body.utm_source && referer) {
       const url = new URL(referer);
@@ -111,7 +111,10 @@ export async function POST(request: NextRequest) {
       body.utm_medium = url.searchParams.get('utm_medium') || undefined;
       body.utm_campaign = url.searchParams.get('utm_campaign') || undefined;
     }
-    body.referrer = referer || undefined;
+    // Note: referrer is tracked via metadata if needed
+    if (referer) {
+      body.metadata = { ...body.metadata, referrer: referer };
+    }
 
     const demoRequest = await createDemoRequest(supabase, body);
 

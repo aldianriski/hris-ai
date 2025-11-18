@@ -8,7 +8,7 @@
 import { InputHTMLAttributes, forwardRef } from 'react';
 import { Calendar, AlertCircle } from 'lucide-react';
 
-interface DatePickerProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+export interface DatePickerProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label: string;
   error?: string;
   helpText?: string;

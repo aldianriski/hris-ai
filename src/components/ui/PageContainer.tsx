@@ -9,6 +9,10 @@ interface PageContainerProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
   withPadding?: boolean;
   animate?: boolean;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  action?: React.ReactNode;
 }
 
 const maxWidthClasses = {
@@ -26,6 +30,10 @@ export function PageContainer({
   maxWidth = 'xl',
   withPadding = true,
   animate = true,
+  title,
+  subtitle,
+  description,
+  action,
 }: PageContainerProps) {
   const Container = animate ? motion.div : 'div';
 
@@ -44,6 +52,16 @@ export function PageContainer({
         transition: { duration: 0.3, ease: 'easeOut' },
       })}
     >
+      {(title || subtitle || description || action) && (
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            {title && <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{title}</h1>}
+            {subtitle && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>}
+            {description && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{description}</p>}
+          </div>
+          {action && <div>{action}</div>}
+        </div>
+      )}
       {children}
     </Container>
   );

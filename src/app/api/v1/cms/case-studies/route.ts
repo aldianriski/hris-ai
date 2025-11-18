@@ -9,7 +9,7 @@ import type { CreateCaseStudyInput } from '@/lib/db/cms-schema';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const searchParams = request.nextUrl.searchParams;
     const filters = {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Check auth (admin only)
     const { data: { user } } = await supabase.auth.getUser();
@@ -56,13 +56,13 @@ export async function POST(request: NextRequest) {
     const body: CreateCaseStudyInput = await request.json();
 
     // Validate required fields
-    if (!body.title || !body.slug || !body.company_name) {
+    if (!body.slug || !body.company_name) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Title, slug, and company name are required'
+            message: 'Slug and company name are required'
           }
         },
         { status: 400 }

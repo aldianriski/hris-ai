@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body = await request.json();
     const { email, source } = body;
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { email } = await request.json();
 
     if (!email) {

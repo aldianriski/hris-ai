@@ -8,7 +8,7 @@
 import { TextareaHTMLAttributes, forwardRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 
-interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   error?: string;
   helpText?: string;

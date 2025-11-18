@@ -336,7 +336,7 @@ export function WebhookManagement() {
                     selectionMode="multiple"
                   >
                     {availableEvents.map(event => (
-                      <SelectItem key={event.value} value={event.value}>
+                      <SelectItem key={event.value}>
                         {event.label} ({event.category})
                       </SelectItem>
                     ))}

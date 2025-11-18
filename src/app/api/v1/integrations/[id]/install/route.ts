@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAdmin } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const installIntegrationSchema = z.object({
   config: z.record(z.any()),
@@ -19,7 +19,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only admins can install integrations
   const userContext = await requireAdmin(request);

@@ -9,7 +9,7 @@ import type { CreateLeadInput } from '@/lib/db/cms-schema';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Check auth
     const { data: { user } } = await supabase.auth.getUser();
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body: CreateLeadInput = await request.json();
 
     // Validate email

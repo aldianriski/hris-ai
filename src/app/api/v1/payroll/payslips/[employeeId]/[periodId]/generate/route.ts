@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, checkEmployeeAccess } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logPayrollAction } from '@/lib/utils/auditLog';
 import { generatePayslipPDF } from '@/lib/pdf/generator';
 import { uploadFile } from '@/lib/storage/upload';
@@ -19,7 +19,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { employeeId: string; periodId: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { employeeId, periodId } = params;
@@ -39,7 +39,7 @@ async function handler(
   // Verify employee belongs to company
   const { data: employee, error: employeeError } = await supabase
     .from('employees')
-    .select('id, full_name, employer_id, position, department')
+    .select('id, full_name, email, employer_id, position, department')
     .eq('id', employeeId)
     .single();
 
@@ -156,7 +156,7 @@ async function handler(
   await logPayrollAction(
     userContext,
     request,
-    'payslip_generated',
+    'created',
     periodId,
     {
       employeeName: employee.full_name,
@@ -164,6 +164,7 @@ async function handler(
       month: period.month,
       year: period.year,
       netSalary: payrollDetail.net_salary,
+      action: 'payslip_generated',
     }
   );
 
@@ -171,14 +172,14 @@ async function handler(
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const pdfResult = await generatePayslipPDF({
     companyName: 'HRIS Company', // TODO: Get from company settings
-    employeeName: employee.full_name,
+    employeeName: employee.full_name || 'Unknown',
     employeeId: employeeId,
-    position: employee.position || 'N/A',
-    department: employee.department || 'N/A',
-    month: monthNames[period.month - 1],
+    position: employee.position ?? 'N/A',
+    department: employee.department ?? 'N/A',
+    month: monthNames[period.month - 1] || 'Unknown',
     year: period.year,
-    periodStart: period.period_start,
-    periodEnd: period.period_end,
+    periodStart: period.period_start || '',
+    periodEnd: period.period_end || '',
     baseSalary: payrollDetail.base_salary || 0,
     allowances: payrollDetail.allowances || 0,
     overtime: payrollDetail.overtime || 0,
@@ -197,8 +198,8 @@ async function handler(
   if (pdfResult.success && pdfResult.buffer) {
     // Convert buffer to File object for upload
     const pdfFile = new File(
-      [pdfResult.buffer],
-      `payslip-${employee.full_name.replace(/\s/g, '-')}-${period.year}-${period.month}.pdf`,
+      [new Uint8Array(pdfResult.buffer)],
+      `payslip-${(employee.full_name || 'unknown').replace(/\s/g, '-')}-${period.year}-${period.month}.pdf`,
       { type: 'application/pdf' }
     );
 
@@ -221,8 +222,8 @@ async function handler(
   // Send email notification to employee with payslip
   if (employee.email) {
     const emailResult = await sendPayslipReadyEmail(employee.email, {
-      employeeName: employee.full_name,
-      month: monthNames[period.month - 1],
+      employeeName: employee.full_name || 'Employee',
+      month: monthNames[period.month - 1] || 'Unknown',
       year: period.year,
       netSalary: payrollDetail.net_salary || 0,
       downloadUrl: pdfUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payslips/${payslip.id}`,

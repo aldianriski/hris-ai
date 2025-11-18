@@ -40,10 +40,8 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     },
 
     integrations: [
-      new Sentry.Replay({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
+      // Replay integration removed - not available in current Sentry version
+      // To enable: install @sentry/replay and import separately
     ],
   });
 }

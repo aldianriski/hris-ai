@@ -311,13 +311,13 @@ export function ChatWidget() {
                       selectedKeys={[category]}
                       onChange={(e) => setCategory(e.target.value)}
                     >
-                      <SelectItem key="general" value="general">
+                      <SelectItem key="general">
                         General
                       </SelectItem>
-                      <SelectItem key="technical" value="technical">
+                      <SelectItem key="technical">
                         Technical Support
                       </SelectItem>
-                      <SelectItem key="billing" value="billing">
+                      <SelectItem key="billing">
                         Billing
                       </SelectItem>
                     </Select>

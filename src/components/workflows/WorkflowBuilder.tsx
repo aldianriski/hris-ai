@@ -112,9 +112,9 @@ export function WorkflowBuilder() {
                 }}
               />
               <Select label="Assignee" placeholder="Select assignee">
-                <SelectItem key="manager" value="manager">Manager</SelectItem>
-                <SelectItem key="hr" value="hr">HR Team</SelectItem>
-                <SelectItem key="ai" value="ai">AI Auto-Approve</SelectItem>
+                <SelectItem key="manager">Manager</SelectItem>
+                <SelectItem key="hr">HR Team</SelectItem>
+                <SelectItem key="ai">AI Auto-Approve</SelectItem>
               </Select>
               <Input label="Timeout (hours)" type="number" defaultValue="24" />
             </CardBody>

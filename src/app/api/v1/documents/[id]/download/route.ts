@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { getSignedUrl } from '@/lib/storage/download';
 import { STORAGE_BUCKETS } from '@/lib/storage/config';
 import { logDocumentAction } from '@/lib/utils/auditLog';
@@ -17,7 +17,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { id } = params;

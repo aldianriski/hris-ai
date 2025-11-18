@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server';
 import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { z } from 'zod';
 import { PaginationSchema } from '@/lib/api/types';
 
@@ -18,7 +18,7 @@ const listIntegrationsSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   await requireAuth(request);
 

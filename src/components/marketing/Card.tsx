@@ -1,6 +1,6 @@
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 
 const cardVariants = cva(
   'rounded-lg transition-all duration-300',

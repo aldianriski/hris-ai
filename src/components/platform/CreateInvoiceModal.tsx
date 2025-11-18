@@ -199,7 +199,7 @@ export function CreateInvoiceModal({
             isRequired
           >
             {tenants.map((tenant) => (
-              <SelectItem key={tenant.id} value={tenant.id}>
+              <SelectItem key={tenant.id}>
                 {tenant.company_name}
               </SelectItem>
             ))}

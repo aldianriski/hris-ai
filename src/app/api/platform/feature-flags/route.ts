@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
       'platform_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Get query params
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       'super_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();

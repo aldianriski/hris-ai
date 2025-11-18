@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireHR } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { PaginationSchema } from '@/lib/api/types';
 import { logPayrollAction } from '@/lib/utils/auditLog';
 
@@ -26,7 +26,7 @@ const listPeriodsSchema = z.object({
 });
 
 async function listHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireHR(request);
 
@@ -99,7 +99,7 @@ const createPeriodSchema = z.object({
 });
 
 async function createHandler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only HR can create payroll periods
   const userContext = await requireHR(request);

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardBody, Button } from '@heroui/react';
 import { Clock, MapPin, Calendar } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils/format';
 
 interface AttendanceClockCardProps {
   onClockIn: (location?: { latitude: number; longitude: number }) => void;

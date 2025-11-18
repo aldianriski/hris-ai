@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler, ApiError } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logAttendanceAction } from '@/lib/utils/auditLog';
 
 const clockInSchema = z.object({
@@ -24,7 +24,7 @@ const clockInSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 

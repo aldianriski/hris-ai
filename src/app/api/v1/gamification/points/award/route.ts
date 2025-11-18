@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireManager } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const awardPointsSchema = z.object({
   employeeId: z.string().uuid('Invalid employee ID'),
@@ -19,7 +19,7 @@ const awardPointsSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only managers and above can award points
   const userContext = await requireManager(request);

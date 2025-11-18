@@ -191,9 +191,9 @@ export default function RolesPage() {
               selectedKeys={[typeFilter]}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <SelectItem key="all" value="all">All Roles</SelectItem>
-              <SelectItem key="platform" value="platform">Platform Roles</SelectItem>
-              <SelectItem key="tenant" value="tenant">Tenant Roles</SelectItem>
+              <SelectItem key="all">All Roles</SelectItem>
+              <SelectItem key="platform">Platform Roles</SelectItem>
+              <SelectItem key="tenant">Tenant Roles</SelectItem>
             </Select>
           </div>
         </CardBody>
@@ -247,7 +247,7 @@ export default function RolesPage() {
                             {role.name}
                           </span>
                           {role.is_system_role && (
-                            <Lock className="w-4 h-4 text-warning-500" title="System Role" />
+                            <Lock className="w-4 h-4 text-warning-500" aria-label="System Role" />
                           )}
                         </div>
                         <span className="text-xs font-mono text-gray-500 dark:text-gray-400">

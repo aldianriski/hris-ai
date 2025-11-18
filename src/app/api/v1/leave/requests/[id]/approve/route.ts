@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireManager } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logLeaveAction } from '@/lib/utils/auditLog';
 import { sendLeaveApprovedEmail } from '@/lib/email/sender';
 
@@ -21,7 +21,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only managers and above can approve leave
   const userContext = await requireManager(request);
@@ -90,13 +90,23 @@ async function handler(
 
     // If RPC doesn't work, update directly
     if (balanceError) {
-      await supabase
+      // Fetch current balance and update
+      const { data: balance } = await supabase
         .from('leave_balances')
-        .update({
-          annual_used: supabase.raw(`annual_used + ${updatedRequest.days_count}`),
-        })
+        .select('annual_used')
         .eq('employee_id', updatedRequest.employee_id)
-        .eq('year', year);
+        .eq('year', year)
+        .single();
+
+      if (balance) {
+        await supabase
+          .from('leave_balances')
+          .update({
+            annual_used: (balance.annual_used || 0) + updatedRequest.days_count,
+          })
+          .eq('employee_id', updatedRequest.employee_id)
+          .eq('year', year);
+      }
     }
   }
 

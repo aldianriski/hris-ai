@@ -243,9 +243,9 @@ export default function FeatureFlagsPage() {
               selectedKeys={[enabledFilter]}
               onChange={(e) => setEnabledFilter(e.target.value)}
             >
-              <SelectItem key="all" value="all">All</SelectItem>
-              <SelectItem key="true" value="true">Enabled</SelectItem>
-              <SelectItem key="false" value="false">Disabled</SelectItem>
+              <SelectItem key="all">All</SelectItem>
+              <SelectItem key="true">Enabled</SelectItem>
+              <SelectItem key="false">Disabled</SelectItem>
             </Select>
             <Select
               label="Rollout Type"
@@ -254,11 +254,11 @@ export default function FeatureFlagsPage() {
               selectedKeys={[rolloutTypeFilter]}
               onChange={(e) => setRolloutTypeFilter(e.target.value)}
             >
-              <SelectItem key="all" value="all">All Types</SelectItem>
-              <SelectItem key="global" value="global">Global</SelectItem>
-              <SelectItem key="percentage" value="percentage">Percentage</SelectItem>
-              <SelectItem key="whitelist" value="whitelist">Whitelist</SelectItem>
-              <SelectItem key="blacklist" value="blacklist">Blacklist</SelectItem>
+              <SelectItem key="all">All Types</SelectItem>
+              <SelectItem key="global">Global</SelectItem>
+              <SelectItem key="percentage">Percentage</SelectItem>
+              <SelectItem key="whitelist">Whitelist</SelectItem>
+              <SelectItem key="blacklist">Blacklist</SelectItem>
             </Select>
             <Button
               color="primary"

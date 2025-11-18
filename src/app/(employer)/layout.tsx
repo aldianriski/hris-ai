@@ -7,14 +7,14 @@ export default function EmployerLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block">
-        <Sidebar userRole="employer" />
+        <Sidebar />
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
         <div className="lg:hidden">
-          <MobileHeader userRole="employer" />
+          <MobileHeader title="Employer Portal" />
         </div>
 
         {/* Page Content */}

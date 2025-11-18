@@ -137,11 +137,11 @@ export function ViewTicketModal({
                   selectedKeys={[status]}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <SelectItem key="open" value="open">Open</SelectItem>
-                  <SelectItem key="in_progress" value="in_progress">In Progress</SelectItem>
-                  <SelectItem key="waiting_customer" value="waiting_customer">Waiting Customer</SelectItem>
-                  <SelectItem key="resolved" value="resolved">Resolved</SelectItem>
-                  <SelectItem key="closed" value="closed">Closed</SelectItem>
+                  <SelectItem key="open">Open</SelectItem>
+                  <SelectItem key="in_progress">In Progress</SelectItem>
+                  <SelectItem key="waiting_customer">Waiting Customer</SelectItem>
+                  <SelectItem key="resolved">Resolved</SelectItem>
+                  <SelectItem key="closed">Closed</SelectItem>
                 </Select>
                 {status !== ticketData.status && (
                   <Button color="primary" size="sm" onPress={handleUpdateStatus}>

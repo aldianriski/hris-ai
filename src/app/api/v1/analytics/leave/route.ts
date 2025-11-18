@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const leaveAnalyticsSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -17,7 +17,7 @@ const leaveAnalyticsSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
 
@@ -64,8 +64,11 @@ async function handler(request: NextRequest) {
       if (!byType[leave.leave_type]) {
         byType[leave.leave_type] = { requests: 0, days: 0 };
       }
-      byType[leave.leave_type].requests++;
-      byType[leave.leave_type].days += leave.days_count || 0;
+      const typeData = byType[leave.leave_type];
+      if (typeData) {
+        typeData.requests++;
+        typeData.days += leave.days_count || 0;
+      }
     });
 
     // Monthly trend
@@ -77,8 +80,11 @@ async function handler(request: NextRequest) {
     leaveRequests?.forEach(leave => {
       if (leave.start_date) {
         const month = new Date(leave.start_date).getMonth() + 1;
-        monthlyTrend[month].requests++;
-        monthlyTrend[month].days += leave.days_count || 0;
+        const trendData = monthlyTrend[month];
+        if (trendData) {
+          trendData.requests++;
+          trendData.days += leave.days_count || 0;
+        }
       }
     });
 

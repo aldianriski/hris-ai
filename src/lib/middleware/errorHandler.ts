@@ -3,7 +3,7 @@
  * Centralized error handling for API routes
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { serverErrorResponse, validationErrorResponse, errorResponse } from '../api/response';
 import type { ErrorCode, HttpStatus } from '../api/types';
@@ -27,9 +27,9 @@ export class ApiError extends Error {
  * Wrap async API route handlers with error handling
  */
 export function withErrorHandler<T = any>(
-  handler: (request: Request, context?: any) => Promise<NextResponse<T>>
+  handler: (request: NextRequest, context?: any) => Promise<NextResponse<T>>
 ) {
-  return async (request: Request, context?: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
     try {
       return await handler(request, context);
     } catch (error) {

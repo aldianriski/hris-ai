@@ -401,7 +401,7 @@ export default function CompliancePage() {
                         </Button>
                       </DropdownTrigger>
                       <DropdownMenu aria-label="Alert actions">
-                        {alert.status === 'open' && (
+                        {alert.status === 'open' ? (
                           <>
                             <DropdownItem
                               key="acknowledge"
@@ -418,7 +418,7 @@ export default function CompliancePage() {
                               Resolve
                             </DropdownItem>
                           </>
-                        )}
+                        ) : null}
                         <DropdownItem
                           key="dismiss"
                           className="text-danger"

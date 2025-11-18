@@ -79,7 +79,7 @@ export function CompanyInfoStep({ data, updateData }: CompanyInfoStepProps) {
           }}
         >
           {industries.map((industry) => (
-            <SelectItem key={industry} value={industry}>
+            <SelectItem key={industry}>
               {industry}
             </SelectItem>
           ))}
@@ -100,7 +100,7 @@ export function CompanyInfoStep({ data, updateData }: CompanyInfoStepProps) {
           }}
         >
           {companySizes.map((size) => (
-            <SelectItem key={size.value} value={size.value}>
+            <SelectItem key={size.value}>
               {size.label}
             </SelectItem>
           ))}
@@ -121,7 +121,7 @@ export function CompanyInfoStep({ data, updateData }: CompanyInfoStepProps) {
           }}
         >
           {countries.map((country) => (
-            <SelectItem key={country} value={country}>
+            <SelectItem key={country}>
               {country}
             </SelectItem>
           ))}
@@ -142,7 +142,7 @@ export function CompanyInfoStep({ data, updateData }: CompanyInfoStepProps) {
           }}
         >
           {timezones.map((timezone) => (
-            <SelectItem key={timezone} value={timezone}>
+            <SelectItem key={timezone}>
               {timezone}
             </SelectItem>
           ))}
@@ -163,7 +163,7 @@ export function CompanyInfoStep({ data, updateData }: CompanyInfoStepProps) {
           }}
         >
           {currencies.map((currency) => (
-            <SelectItem key={currency.value} value={currency.value}>
+            <SelectItem key={currency.value}>
               {currency.label}
             </SelectItem>
           ))}

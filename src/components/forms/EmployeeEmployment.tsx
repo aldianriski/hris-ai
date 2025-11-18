@@ -57,7 +57,7 @@ export function EmployeeEmployment() {
         errorMessage={errors.employmentType?.message}
       >
         {EMPLOYMENT_TYPES.map((type) => (
-          <SelectItem key={type.value} value={type.value}>
+          <SelectItem key={type.value}>
             {type.label}
           </SelectItem>
         ))}
@@ -73,7 +73,7 @@ export function EmployeeEmployment() {
         errorMessage={errors.employmentStatus?.message}
       >
         {EMPLOYMENT_STATUS.map((status) => (
-          <SelectItem key={status.value} value={status.value}>
+          <SelectItem key={status.value}>
             {status.label}
           </SelectItem>
         ))}

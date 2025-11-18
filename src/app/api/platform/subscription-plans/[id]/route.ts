@@ -27,8 +27,8 @@ export async function GET(
       'billing_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Try to fetch by ID first, then by slug
@@ -86,8 +86,8 @@ export async function PATCH(
       'super_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -152,8 +152,8 @@ export async function DELETE(
       'super_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Check if any tenants are using this plan

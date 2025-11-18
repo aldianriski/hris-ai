@@ -103,7 +103,7 @@ export function CreatePeriodButton() {
                 isRequired
               >
                 {MONTHS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
+                  <SelectItem key={m.value}>
                     {m.label}
                   </SelectItem>
                 ))}
@@ -117,7 +117,7 @@ export function CreatePeriodButton() {
                 isRequired
               >
                 {years.map((y) => (
-                  <SelectItem key={y.value} value={y.value}>
+                  <SelectItem key={y.value}>
                     {y.label}
                   </SelectItem>
                 ))}

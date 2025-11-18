@@ -5,7 +5,4 @@
 
 export { PerformanceReviewCard } from './PerformanceReviewCard';
 
-export type {
-  PerformanceReview,
-  PerformanceReviewCardProps,
-} from './PerformanceReviewCard';
+// Note: PerformanceReview and PerformanceReviewCardProps types not exported from source

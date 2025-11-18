@@ -109,7 +109,9 @@ export async function deleteCachePattern(pattern: string): Promise<number> {
 
     // For Upstash, we need to maintain a set of keys per pattern
     const setKey = `_pattern:${pattern}`;
-    const keys = await redis.smembers<string>(setKey);
+    const keysResult = await redis.smembers<string>(setKey);
+    // Ensure we have an array (smembers should return string[])
+    const keys = Array.isArray(keysResult) ? keysResult : [];
 
     if (keys.length === 0) {
       return 0;

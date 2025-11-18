@@ -27,8 +27,8 @@ export async function GET(
       'billing_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Try to fetch by ID first, then by invoice number
@@ -95,8 +95,8 @@ export async function PATCH(
       'billing_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -166,8 +166,8 @@ export async function DELETE(
       'billing_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Check invoice status - only drafts can be deleted

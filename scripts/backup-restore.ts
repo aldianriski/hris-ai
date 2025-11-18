@@ -49,8 +49,9 @@ async function main() {
     };
 
     const tablesIndex = args.indexOf('--tables');
-    if (tablesIndex !== -1 && args[tablesIndex + 1]) {
-      options.tables = args[tablesIndex + 1].split(',').map((t) => t.trim());
+    const tablesArg = args[tablesIndex + 1];
+    if (tablesIndex !== -1 && tablesArg) {
+      options.tables = tablesArg.split(',').map((t) => t.trim());
     }
 
     console.log('🔍 Verifying backup...\n');

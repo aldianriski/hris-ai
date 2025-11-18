@@ -101,7 +101,7 @@ export function EmployeeSearchFilter() {
             onChange={(e) => setStatus(e.target.value)}
           >
             {EMPLOYMENT_STATUS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
+              <SelectItem key={item.value}>
                 {item.label}
               </SelectItem>
             ))}
@@ -114,7 +114,7 @@ export function EmployeeSearchFilter() {
             onChange={(e) => setEmploymentType(e.target.value)}
           >
             {EMPLOYMENT_TYPES.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
+              <SelectItem key={item.value}>
                 {item.label}
               </SelectItem>
             ))}

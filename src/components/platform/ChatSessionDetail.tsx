@@ -228,7 +228,7 @@ export function ChatSessionDetail({ sessionId, onClose, onUpdate }: ChatSessionD
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="Chat actions">
-              {session.status !== 'resolved' && (
+              {session.status !== 'resolved' ? (
                 <DropdownItem
                   key="resolve"
                   startContent={<CheckCircle2 className="w-4 h-4" />}
@@ -236,8 +236,8 @@ export function ChatSessionDetail({ sessionId, onClose, onUpdate }: ChatSessionD
                 >
                   Mark as Resolved
                 </DropdownItem>
-              )}
-              {session.status !== 'waiting' && (
+              ) : null}
+              {session.status !== 'waiting' ? (
                 <DropdownItem
                   key="waiting"
                   startContent={<Clock className="w-4 h-4" />}
@@ -245,8 +245,8 @@ export function ChatSessionDetail({ sessionId, onClose, onUpdate }: ChatSessionD
                 >
                   Mark as Waiting
                 </DropdownItem>
-              )}
-              {session.status !== 'closed' && (
+              ) : null}
+              {session.status !== 'closed' ? (
                 <DropdownItem
                   key="close"
                   className="text-danger"
@@ -256,7 +256,7 @@ export function ChatSessionDetail({ sessionId, onClose, onUpdate }: ChatSessionD
                 >
                   Close Chat
                 </DropdownItem>
-              )}
+              ) : null}
             </DropdownMenu>
           </Dropdown>
           <Button isIconOnly size="sm" variant="light" onPress={onClose}>

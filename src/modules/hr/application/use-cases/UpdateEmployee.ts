@@ -54,8 +54,8 @@ export class UpdateEmployeeUseCase {
       }
     }
 
-    // Update employee
-    const updates: Partial<Employee> = {};
+    // Update employee - use type assertion since we're building update object dynamically
+    const updates: any = {};
 
     if (dto.fullName !== undefined) updates.fullName = dto.fullName;
     if (dto.email !== undefined) updates.email = dto.email;

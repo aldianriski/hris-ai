@@ -167,7 +167,7 @@ export function CreatePlatformUserModal({
                 isDisabled={loading}
               >
                 {platformRoles.map((role) => (
-                  <SelectItem key={role} value={role}>
+                  <SelectItem key={role}>
                     {getRoleDisplayName(role)}
                   </SelectItem>
                 ))}

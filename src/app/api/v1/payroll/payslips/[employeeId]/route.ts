@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, paginatedResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, checkEmployeeAccess } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { PaginationSchema } from '@/lib/api/types';
 
 const payslipListSchema = z.object({
@@ -23,7 +23,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: { employeeId: string } }
 ) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   const userContext = await requireAuth(request);
   const { employeeId } = params;

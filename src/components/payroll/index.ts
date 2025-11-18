@@ -11,7 +11,4 @@ export type {
   PayrollPeriodCardProps,
 } from './PayrollPeriodCard';
 
-export type {
-  Payslip,
-  PayslipViewerProps,
-} from './PayslipViewer';
+// PayslipViewer exports are not available - remove if needed

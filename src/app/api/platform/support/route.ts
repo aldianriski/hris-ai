@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
       'support_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     // Build query
@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
       'support_admin',
     ]);
 
-    if (permError) {
-      return NextResponse.json({ error: permError }, { status: 403 });
+    if (permError || !user) {
+      return NextResponse.json({ error: permError || 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();

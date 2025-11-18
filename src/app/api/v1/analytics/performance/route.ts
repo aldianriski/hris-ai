@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireManager } from '@/lib/middleware/auth';
-import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { withRateLimit } from '@/lib/ratelimit/middleware';
 
 const performanceAnalyticsSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -18,7 +18,7 @@ const performanceAnalyticsSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
-  await standardRateLimit(request);
+  await withRateLimit(request);
 
   // Only managers and above can access performance analytics
   const userContext = await requireManager(request);
@@ -109,20 +109,26 @@ async function handler(request: NextRequest) {
           completed: 0,
         };
       }
-      byDepartment[dept].count++;
-      if (review.overall_rating) {
-        byDepartment[dept].averageRating += review.overall_rating;
-      }
-      if (review.status === 'submitted' || review.status === 'completed') {
-        byDepartment[dept].completed++;
+      const deptData = byDepartment[dept];
+      if (deptData) {
+        deptData.count++;
+        if (review.overall_rating) {
+          deptData.averageRating += review.overall_rating;
+        }
+        if (review.status === 'submitted' || review.status === 'completed') {
+          deptData.completed++;
+        }
       }
     });
 
     // Calculate department averages
     Object.keys(byDepartment).forEach(dept => {
-      byDepartment[dept].averageRating = byDepartment[dept].count > 0
-        ? Math.round((byDepartment[dept].averageRating / byDepartment[dept].count) * 10) / 10
-        : 0;
+      const deptData = byDepartment[dept];
+      if (deptData) {
+        deptData.averageRating = deptData.count > 0
+          ? Math.round((deptData.averageRating / deptData.count) * 10) / 10
+          : 0;
+      }
     });
 
     // Get active employees count for completion tracking

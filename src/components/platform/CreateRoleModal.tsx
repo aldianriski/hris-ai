@@ -200,10 +200,10 @@ export function CreateRoleModal({
             }}
             isRequired
           >
-            <SelectItem key="platform" value="platform">
+            <SelectItem key="platform">
               Platform Role (For platform administrators)
             </SelectItem>
-            <SelectItem key="tenant" value="tenant">
+            <SelectItem key="tenant">
               Tenant Role (For customer company users)
             </SelectItem>
           </Select>
@@ -214,16 +214,16 @@ export function CreateRoleModal({
             selectedKeys={[formData.scope]}
             onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
           >
-            <SelectItem key="global" value="global">
+            <SelectItem key="global">
               Global - Full access within context
             </SelectItem>
-            <SelectItem key="tenant" value="tenant">
+            <SelectItem key="tenant">
               Tenant - Limited to tenant data
             </SelectItem>
-            <SelectItem key="department" value="department">
+            <SelectItem key="department">
               Department - Limited to department
             </SelectItem>
-            <SelectItem key="self" value="self">
+            <SelectItem key="self">
               Self - Own data only
             </SelectItem>
           </Select>
