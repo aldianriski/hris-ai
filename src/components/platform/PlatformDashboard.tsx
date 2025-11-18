@@ -203,75 +203,81 @@ export function PlatformDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardBody>
-            <h3 className="text-lg font-semibold mb-4">Tenant Growth</h3>
+        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <CardBody className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tenant Growth</h3>
+              <TrendingUp className="w-5 h-5 text-gray-400" />
+            </div>
             <TenantGrowthChart data={metrics.growthData} />
           </CardBody>
         </Card>
 
-        <Card>
-          <CardBody>
-            <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
+        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <CardBody className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue Trend</h3>
+              <DollarSign className="w-5 h-5 text-gray-400" />
+            </div>
             <RevenueChart data={metrics.revenueData} />
           </CardBody>
         </Card>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
-          <CardBody>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 hover:shadow-lg transition-shadow">
+          <CardBody className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Tenants</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Tenants</p>
+                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mt-2">
                   {tenantMetrics.active}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {((tenantMetrics.active / tenantMetrics.total) * 100).toFixed(1)}% of total
                 </p>
               </div>
-              <div className="w-16 h-16 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center">
-                <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-300" />
+              <div className="w-20 h-20 rounded-2xl bg-blue-200 dark:bg-blue-700 flex items-center justify-center shadow-md">
+                <Building2 className="w-10 h-10 text-blue-600 dark:text-blue-300" />
               </div>
             </div>
           </CardBody>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
-          <CardBody>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 hover:shadow-lg transition-shadow">
+          <CardBody className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Trial Accounts</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Trial Accounts</p>
+                <p className="text-4xl font-bold text-green-600 dark:text-green-400 mt-2">
                   {tenantMetrics.trial}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Potential conversions
                 </p>
               </div>
-              <div className="w-16 h-16 rounded-full bg-green-200 dark:bg-green-700 flex items-center justify-center">
-                <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-300" />
+              <div className="w-20 h-20 rounded-2xl bg-green-200 dark:bg-green-700 flex items-center justify-center shadow-md">
+                <TrendingUp className="w-10 h-10 text-green-600 dark:text-green-300" />
               </div>
             </div>
           </CardBody>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
-          <CardBody>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 hover:shadow-lg transition-shadow">
+          <CardBody className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Churn Rate</p>
-                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Churn Rate</p>
+                <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 mt-2">
                   {revenueMetrics.churnRate}%
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {tenantMetrics.churned} churned this month
                 </p>
               </div>
-              <div className="w-16 h-16 rounded-full bg-orange-200 dark:bg-orange-700 flex items-center justify-center">
-                <TrendingDown className="w-8 h-8 text-orange-600 dark:text-orange-300" />
+              <div className="w-20 h-20 rounded-2xl bg-orange-200 dark:bg-orange-700 flex items-center justify-center shadow-md">
+                <TrendingDown className="w-10 h-10 text-orange-600 dark:text-orange-300" />
               </div>
             </div>
           </CardBody>
@@ -281,11 +287,13 @@ export function PlatformDashboard() {
       {/* Recent Activity & Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
-        <Card className="lg:col-span-2">
-          <CardBody>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Recent Activity</h3>
-              <button className="text-sm text-primary hover:underline">View All</button>
+        <Card className="lg:col-span-2 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <CardBody className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+              <button className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                View All
+              </button>
             </div>
 
             <div className="space-y-3">
@@ -293,30 +301,31 @@ export function PlatformDashboard() {
                 recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-800/50 dark:to-transparent border border-gray-100 dark:border-gray-700/50 hover:shadow-sm transition-all"
                   >
                     <div className={`
-                      w-2 h-2 rounded-full flex-shrink-0
-                      ${activity.type === 'upgrade' ? 'bg-green-500' : ''}
-                      ${activity.type === 'new_tenant' ? 'bg-blue-500' : ''}
-                      ${activity.type === 'payment' ? 'bg-purple-500' : ''}
-                      ${activity.type === 'churn' ? 'bg-red-500' : ''}
+                      w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm
+                      ${activity.type === 'upgrade' ? 'bg-green-500 shadow-green-500/50' : ''}
+                      ${activity.type === 'new_tenant' ? 'bg-blue-500 shadow-blue-500/50' : ''}
+                      ${activity.type === 'payment' ? 'bg-purple-500 shadow-purple-500/50' : ''}
+                      ${activity.type === 'churn' ? 'bg-red-500 shadow-red-500/50' : ''}
                     `} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                         {activity.tenantName}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
                         {activity.description}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 flex-shrink-0">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex-shrink-0">
                       {formatTimeAgo(activity.timestamp)}
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No recent activity</p>
                 </div>
               )}
@@ -325,9 +334,9 @@ export function PlatformDashboard() {
         </Card>
 
         {/* Quick Stats */}
-        <Card>
-          <CardBody>
-            <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
+        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+          <CardBody className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Quick Stats</h3>
 
             <div className="space-y-4">
               <div>

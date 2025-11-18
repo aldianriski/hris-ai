@@ -213,167 +213,205 @@ export function TenantListTable() {
       {/* Tenants Table */}
       <Card>
         <CardBody className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Company
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Admin
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Plan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Employees
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredTenants.map((tenant) => (
-                  <tr
-                    key={tenant.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-                          <Building2 className="w-5 h-5 text-white" />
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center space-y-4">
+                <Spinner size="lg" color="primary" />
+                <p className="text-sm text-gray-600 dark:text-gray-400">Loading tenants...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error Loading Tenants</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+              <Button color="primary" size="sm" onPress={() => window.location.reload()}>
+                Retry
+              </Button>
+            </div>
+          ) : filteredTenants.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <Building2 className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No tenants found</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                {searchQuery || statusFilter !== 'all' || planFilter !== 'all'
+                  ? 'Try adjusting your filters to find what you\'re looking for'
+                  : 'Get started by creating your first tenant'}
+              </p>
+              {!searchQuery && statusFilter === 'all' && planFilter === 'all' && (
+                <Link href="/(platform-admin)/tenants/new">
+                  <Button color="primary" variant="shadow">
+                    Create First Tenant
+                  </Button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Company
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Admin
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Plan
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Employees
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredTenants.map((tenant, index) => (
+                    <tr
+                      key={tenant.id}
+                      className="group hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent dark:hover:from-gray-800/50 dark:hover:to-transparent transition-all duration-200"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-200">
+                            <Building2 className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/(platform-admin)/tenants/${tenant.id}`}
+                              className="font-semibold text-gray-900 dark:text-white hover:text-primary transition-colors truncate block"
+                            >
+                              {tenant.companyName}
+                            </Link>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {tenant.slug}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <Link
-                            href={`/(platform-admin)/tenants/${tenant.id}`}
-                            className="font-medium text-gray-900 dark:text-white hover:text-primary transition-colors"
-                          >
-                            {tenant.companyName}
-                          </Link>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {tenant.slug}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {tenant.primaryAdmin.firstName} {tenant.primaryAdmin.lastName}
+                          </p>
+                          <p className="text-gray-500 dark:text-gray-400 text-xs">
+                            {tenant.primaryAdmin.email}
                           </p>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {tenant.primaryAdmin.firstName} {tenant.primaryAdmin.lastName}
-                        </p>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          {tenant.primaryAdmin.email}
-                        </p>
-                      </div>
-                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Chip
+                          size="sm"
+                          color={planColors[tenant.subscriptionPlan as keyof typeof planColors]}
+                          variant="flat"
+                          className="capitalize font-medium"
+                        >
+                          {tenant.subscriptionPlan}
+                        </Chip>
+                      </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Chip
-                        size="sm"
-                        color={planColors[tenant.subscriptionPlan as keyof typeof planColors]}
-                        variant="flat"
-                      >
-                        {tenant.subscriptionPlan}
-                      </Chip>
-                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Chip
+                          size="sm"
+                          color={statusColors[tenant.subscriptionStatus as keyof typeof statusColors]}
+                          variant="dot"
+                          className="capitalize font-medium"
+                        >
+                          {tenant.subscriptionStatus}
+                        </Chip>
+                      </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Chip
-                        size="sm"
-                        color={statusColors[tenant.subscriptionStatus as keyof typeof statusColors]}
-                        variant="flat"
-                      >
-                        {tenant.subscriptionStatus}
-                      </Chip>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {tenant.currentEmployeeCount} / {tenant.maxEmployees}
-                        </p>
-                        <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{
-                              width: `${(tenant.currentEmployeeCount / tenant.maxEmployees) * 100}%`
-                            }}
-                          />
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <p className="font-semibold text-gray-900 dark:text-white mb-1">
+                            {tenant.currentEmployeeCount} / {tenant.maxEmployees}
+                          </p>
+                          <div className="w-28 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                            <div
+                              className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 shadow-sm"
+                              style={{
+                                width: `${(tenant.currentEmployeeCount / tenant.maxEmployees) * 100}%`
+                              }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(tenant.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(tenant.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button isIconOnly size="sm" variant="light">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="Tenant actions">
-                          <DropdownItem
-                            key="view"
-                            startContent={<Eye className="w-4 h-4" />}
-                          >
-                            View Details
-                          </DropdownItem>
-                          <DropdownItem
-                            key="edit"
-                            startContent={<Edit className="w-4 h-4" />}
-                          >
-                            Edit
-                          </DropdownItem>
-                          <DropdownItem
-                            key="suspend"
-                            startContent={
-                              tenant.status === 'suspended' ?
-                                <PlayCircle className="w-4 h-4" /> :
-                                <PauseCircle className="w-4 h-4" />
-                            }
-                            className={tenant.status === 'suspended' ? 'text-success' : 'text-warning'}
-                          >
-                            {tenant.status === 'suspended' ? 'Activate' : 'Suspend'}
-                          </DropdownItem>
-                          <DropdownItem
-                            key="delete"
-                            className="text-danger"
-                            color="danger"
-                            startContent={<Trash2 className="w-4 h-4" />}
-                          >
-                            Delete
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredTenants.length === 0 && (
-            <div className="text-center py-12">
-              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400">
-                No tenants found matching your filters
-              </p>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <Dropdown>
+                          <DropdownTrigger>
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              variant="light"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu aria-label="Tenant actions">
+                            <DropdownItem
+                              key="view"
+                              startContent={<Eye className="w-4 h-4" />}
+                            >
+                              View Details
+                            </DropdownItem>
+                            <DropdownItem
+                              key="edit"
+                              startContent={<Edit className="w-4 h-4" />}
+                            >
+                              Edit
+                            </DropdownItem>
+                            <DropdownItem
+                              key="suspend"
+                              startContent={
+                                tenant.status === 'suspended' ?
+                                  <PlayCircle className="w-4 h-4" /> :
+                                  <PauseCircle className="w-4 h-4" />
+                              }
+                              className={tenant.status === 'suspended' ? 'text-success' : 'text-warning'}
+                            >
+                              {tenant.status === 'suspended' ? 'Activate' : 'Suspend'}
+                            </DropdownItem>
+                            <DropdownItem
+                              key="delete"
+                              className="text-danger"
+                              color="danger"
+                              startContent={<Trash2 className="w-4 h-4" />}
+                            >
+                              Delete
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </Dropdown>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardBody>
