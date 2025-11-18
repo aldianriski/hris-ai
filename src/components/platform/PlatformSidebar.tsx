@@ -13,7 +13,8 @@ import {
   Zap,
   LogOut,
   Flag,
-  Receipt
+  Receipt,
+  Shield
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/auth/use-permissions';
 import { getRoleDisplayName, type PlatformRole } from '@/lib/auth/permissions';
@@ -37,6 +38,12 @@ const navigationConfig = [
     name: 'Users',
     href: '/users',
     icon: Users,
+    roles: ['super_admin', 'platform_admin'] as PlatformRole[]
+  },
+  {
+    name: 'Roles',
+    href: '/roles',
+    icon: Shield,
     roles: ['super_admin', 'platform_admin'] as PlatformRole[]
   },
   {
