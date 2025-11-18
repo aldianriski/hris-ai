@@ -22,6 +22,9 @@ export {
   cleanupFailedJobsJob,
 } from './cleanup';
 
+// Notification jobs
+export { sendNotificationJob } from './notifications';
+
 /**
  * All job functions array
  * Used by Inngest API endpoint
@@ -35,6 +38,7 @@ import {
   archiveOldLogsJob,
   cleanupFailedJobsJob,
 } from './cleanup';
+import { sendNotificationJob } from './notifications';
 
 export const allJobs = [
   // Payroll
@@ -50,6 +54,9 @@ export const allJobs = [
 
   // Workflows
   executeWorkflowJob,
+
+  // Notifications
+  sendNotificationJob,
 
   // Cleanup
   cleanupExpiredTokensJob,

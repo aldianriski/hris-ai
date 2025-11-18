@@ -30,6 +30,7 @@
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^11.11.17",
     "geist": "^1.5.1",
     "inngest": "^3.45.1",
