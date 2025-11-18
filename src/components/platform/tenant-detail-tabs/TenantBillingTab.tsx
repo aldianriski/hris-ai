@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react';
+import { Card, CardBody, Button, Chip, Spinner, useDisclosure } from '@heroui/react';
 import { CreditCard, Download, Calendar, AlertCircle } from 'lucide-react';
+import { ChangeSubscriptionModal } from '../ChangeSubscriptionModal';
 
 interface TenantBillingTabProps {
   tenantId: string;
@@ -26,6 +27,8 @@ export function TenantBillingTab({ tenantId }: TenantBillingTabProps) {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     fetchTenant();
@@ -139,7 +142,7 @@ export function TenantBillingTab({ tenantId }: TenantBillingTabProps) {
               </div>
             </div>
 
-            <Button color="primary">Change Plan</Button>
+            <Button color="primary" onPress={onOpen}>Change Plan</Button>
           </div>
         </CardBody>
       </Card>
@@ -250,6 +253,21 @@ export function TenantBillingTab({ tenantId }: TenantBillingTabProps) {
           </div>
         </CardBody>
       </Card>
+
+      {/* Change Subscription Modal */}
+      {tenant && (
+        <ChangeSubscriptionModal
+          isOpen={isOpen}
+          onClose={onClose}
+          onSuccess={fetchTenant}
+          tenant={{
+            id: tenant.id,
+            company_name: tenant.company_name,
+            subscription_plan: tenant.subscription_plan,
+            max_employees: tenant.max_employees,
+          }}
+        />
+      )}
     </div>
   );
 }
