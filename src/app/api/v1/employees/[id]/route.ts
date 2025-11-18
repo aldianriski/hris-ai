@@ -1,8 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/di/container';
-import { z } from 'zod';
+/**
+ * Employee Detail Endpoints
+ * GET /api/v1/employees/[id] - Get employee details
+ * PATCH /api/v1/employees/[id] - Update employee
+ * DELETE /api/v1/employees/[id] - Delete employee (soft delete)
+ */
 
-// Validation schema for updating an employee
+import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { successResponse, notFoundResponse, errorResponse } from '@/lib/api/response';
+import { withErrorHandler } from '@/lib/middleware/errorHandler';
+import { requireAuth, requireHR, checkEmployeeAccess } from '@/lib/middleware/auth';
+import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { logEmployeeAction } from '@/lib/utils/auditLog';
+
+// ============================================
+// GET /api/v1/employees/[id] - Get employee
+// ============================================
+
+async function getHandler(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  await standardRateLimit(request);
+
+  const userContext = await requireAuth(request);
+  const { id } = params;
+
+  // Check if user can access this employee
+  if (!checkEmployeeAccess(userContext, id)) {
+    return errorResponse(
+      'AUTH_1004',
+      'You do not have permission to access this employee',
+      403
+    );
+  }
+
+  const supabase = await createClient();
+
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('id', id)
+    .eq('employer_id', userContext.companyId)
+    .single();
+
+  if (error || !employee) {
+    return notFoundResponse('Employee');
+  }
+
+  return successResponse(employee);
+}
+
+// ============================================
+// PATCH /api/v1/employees/[id] - Update employee
+// ============================================
+
 const updateEmployeeSchema = z.object({
   firstName: z.string().min(1).optional(),
   middleName: z.string().optional(),
@@ -19,136 +72,182 @@ const updateEmployeeSchema = z.object({
   city: z.string().min(1).optional(),
   province: z.string().min(1).optional(),
   postalCode: z.string().optional(),
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
-  emergencyContactRelation: z.string().optional(),
-  department: z.string().uuid().optional(),
-  position: z.string().uuid().optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
   employmentType: z.enum(['permanent', 'contract', 'probation', 'intern', 'part_time']).optional(),
   employmentStatus: z.enum(['active', 'inactive', 'terminated', 'resigned']).optional(),
-  joinDate: z.string().datetime().optional(),
-  contractStartDate: z.string().datetime().optional(),
-  contractEndDate: z.string().datetime().optional(),
-  probationEndDate: z.string().datetime().optional(),
-  terminationDate: z.string().datetime().optional(),
-  terminationReason: z.string().optional(),
-  manager: z.string().uuid().optional(),
+  manager: z.string().optional(),
   workLocation: z.string().min(1).optional(),
   workSchedule: z.string().min(1).optional(),
-  salary: z.number().optional(),
-  bankName: z.string().optional(),
-  bankAccountNumber: z.string().optional(),
-  bankAccountHolder: z.string().optional(),
-  bpjsKesehatan: z.string().optional(),
-  bpjsKetenagakerjaan: z.string().optional(),
+  salary: z.number().positive().optional(),
 });
 
-/**
- * GET /api/v1/employees/[id]
- * Get employee by ID
- */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-
-    const repository = await container.getEmployeeRepository();
-    const employee = await repository.findById(id);
-
-    if (!employee) {
-      return NextResponse.json(
-        { error: 'Employee not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(employee, { status: 200 });
-  } catch (error) {
-    console.error('Failed to get employee:', error);
-    return NextResponse.json(
-      { error: 'Failed to get employee', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * PATCH /api/v1/employees/[id]
- * Update employee
- */
-export async function PATCH(
+async function updateHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const { id } = params;
-    const body = await request.json();
+  await standardRateLimit(request);
 
-    // Validate request body
-    const validatedData = updateEmployeeSchema.parse(body);
+  // Only HR can update employees
+  const userContext = await requireHR(request);
+  const { id } = params;
 
-    // Convert date strings to Date objects if present
-    const updates: any = { ...validatedData };
-    if (validatedData.dateOfBirth) updates.dateOfBirth = new Date(validatedData.dateOfBirth);
-    if (validatedData.joinDate) updates.joinDate = new Date(validatedData.joinDate);
-    if (validatedData.contractStartDate) updates.contractStartDate = new Date(validatedData.contractStartDate);
-    if (validatedData.contractEndDate) updates.contractEndDate = new Date(validatedData.contractEndDate);
-    if (validatedData.probationEndDate) updates.probationEndDate = new Date(validatedData.probationEndDate);
-    if (validatedData.terminationDate) updates.terminationDate = new Date(validatedData.terminationDate);
+  // Parse and validate request body
+  const body = await request.json();
+  const validatedData = updateEmployeeSchema.parse(body);
 
-    // Get existing employee to get employerId
-    const repository = await container.getEmployeeRepository();
-    const existing = await repository.findById(id);
-    if (!existing) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
+  const supabase = await createClient();
 
-    const updateEmployee = await container.getUpdateEmployeeUseCase();
-    const employee = await updateEmployee.execute(id, existing.employerId, updates);
+  // Get existing employee
+  const { data: existing, error: fetchError } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('id', id)
+    .eq('employer_id', userContext.companyId)
+    .single();
 
-    return NextResponse.json(employee, { status: 200 });
-  } catch (error) {
-    console.error('Failed to update employee:', error);
+  if (fetchError || !existing) {
+    return notFoundResponse('Employee');
+  }
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
+  // Build update data
+  const updateData: any = {};
+  if (validatedData.firstName) updateData.first_name = validatedData.firstName;
+  if (validatedData.middleName !== undefined) updateData.middle_name = validatedData.middleName;
+  if (validatedData.lastName) updateData.last_name = validatedData.lastName;
+  if (validatedData.email) updateData.email = validatedData.email;
+  if (validatedData.phone) updateData.phone = validatedData.phone;
+  if (validatedData.dateOfBirth) updateData.date_of_birth = validatedData.dateOfBirth;
+  if (validatedData.gender) updateData.gender = validatedData.gender;
+  if (validatedData.maritalStatus) updateData.marital_status = validatedData.maritalStatus;
+  if (validatedData.nationality) updateData.nationality = validatedData.nationality;
+  if (validatedData.nationalId !== undefined) updateData.national_id = validatedData.nationalId;
+  if (validatedData.taxId !== undefined) updateData.tax_id = validatedData.taxId;
+  if (validatedData.address) updateData.address = validatedData.address;
+  if (validatedData.city) updateData.city = validatedData.city;
+  if (validatedData.province) updateData.province = validatedData.province;
+  if (validatedData.postalCode !== undefined) updateData.postal_code = validatedData.postalCode;
+  if (validatedData.department) updateData.department = validatedData.department;
+  if (validatedData.position) updateData.position = validatedData.position;
+  if (validatedData.employmentType) updateData.employment_type = validatedData.employmentType;
+  if (validatedData.employmentStatus) updateData.employment_status = validatedData.employmentStatus;
+  if (validatedData.manager !== undefined) updateData.manager = validatedData.manager;
+  if (validatedData.workLocation) updateData.work_location = validatedData.workLocation;
+  if (validatedData.workSchedule) updateData.work_schedule = validatedData.workSchedule;
+  if (validatedData.salary !== undefined) updateData.salary = validatedData.salary;
 
-    return NextResponse.json(
-      { error: 'Failed to update employee', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Update full name if name fields changed
+  if (validatedData.firstName || validatedData.middleName !== undefined || validatedData.lastName) {
+    const fullName = [
+      validatedData.firstName || existing.first_name,
+      validatedData.middleName !== undefined ? validatedData.middleName : existing.middle_name,
+      validatedData.lastName || existing.last_name
+    ].filter(Boolean).join(' ');
+    updateData.full_name = fullName;
+  }
+
+  // Update timestamp
+  updateData.updated_at = new Date().toISOString();
+
+  // Perform update
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .update(updateData)
+    .eq('id', id)
+    .eq('employer_id', userContext.companyId)
+    .select()
+    .single();
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to update employee',
+      500,
+      { details: error.message }
     );
   }
+
+  // Log employee update
+  await logEmployeeAction(
+    userContext,
+    request,
+    'updated',
+    employee.id,
+    employee.full_name,
+    {
+      before: existing,
+      after: employee,
+    }
+  );
+
+  // TODO: Trigger employee.updated webhook
+
+  return successResponse(employee);
 }
 
-/**
- * DELETE /api/v1/employees/[id]
- * Delete employee (soft delete by marking as inactive)
- */
-export async function DELETE(
-  _request: NextRequest,
+// ============================================
+// DELETE /api/v1/employees/[id] - Delete employee
+// ============================================
+
+async function deleteHandler(
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const { id } = params;
+  await standardRateLimit(request);
 
-    const repository = await container.getEmployeeRepository();
-    await repository.delete(id);
+  // Only HR can delete employees
+  const userContext = await requireHR(request);
+  const { id } = params;
 
-    return NextResponse.json(
-      { message: 'Employee deleted successfully' },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Failed to delete employee:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete employee', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  const supabase = await createClient();
+
+  // Get existing employee
+  const { data: existing, error: fetchError } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('id', id)
+    .eq('employer_id', userContext.companyId)
+    .single();
+
+  if (fetchError || !existing) {
+    return notFoundResponse('Employee');
+  }
+
+  // Soft delete: mark as inactive
+  const { error } = await supabase
+    .from('employees')
+    .update({
+      employment_status: 'inactive',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('employer_id', userContext.companyId);
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to delete employee',
+      500,
+      { details: error.message }
     );
   }
+
+  // Log employee deletion
+  await logEmployeeAction(
+    userContext,
+    request,
+    'deleted',
+    existing.id,
+    existing.full_name
+  );
+
+  // TODO: Trigger employee.deleted webhook
+
+  return successResponse({
+    message: 'Employee deleted successfully',
+  });
 }
+
+export const GET = withErrorHandler(getHandler);
+export const PATCH = withErrorHandler(updateHandler);
+export const DELETE = withErrorHandler(deleteHandler);

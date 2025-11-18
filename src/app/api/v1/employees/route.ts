@@ -1,127 +1,253 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/di/container';
-import { z } from 'zod';
+/**
+ * Employee Management Endpoints
+ * GET /api/v1/employees - List all employees
+ * POST /api/v1/employees - Create new employee
+ */
 
-// Validation schema for creating an employee
-const createEmployeeSchema = z.object({
-  employerId: z.string().uuid(),
-  firstName: z.string().min(1),
-  middleName: z.string().optional(),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().min(1),
-  dateOfBirth: z.string().datetime(),
-  gender: z.enum(['male', 'female', 'other']),
-  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']),
-  nationality: z.string().default('Indonesian'),
-  nationalId: z.string().optional(),
-  taxId: z.string().optional(),
-  address: z.string().min(1),
-  city: z.string().min(1),
-  province: z.string().min(1),
-  postalCode: z.string().optional(),
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
-  emergencyContactRelation: z.string().optional(),
-  department: z.string().uuid(),
-  position: z.string().uuid(),
-  employmentType: z.enum(['permanent', 'contract', 'probation', 'intern', 'part_time']),
-  employmentStatus: z.enum(['active', 'inactive', 'terminated', 'resigned']).default('active'),
-  joinDate: z.string().datetime(),
-  contractStartDate: z.string().datetime().optional(),
-  contractEndDate: z.string().datetime().optional(),
-  probationEndDate: z.string().datetime().optional(),
-  manager: z.string().uuid().optional(),
-  workLocation: z.string().min(1),
-  workSchedule: z.string().min(1),
-  salary: z.number().optional(),
-  bankName: z.string().optional(),
-  bankAccountNumber: z.string().optional(),
-  bankAccountHolder: z.string().optional(),
-  bpjsKesehatan: z.string().optional(),
-  bpjsKetenagakerjaan: z.string().optional(),
+import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
+import { withErrorHandler } from '@/lib/middleware/errorHandler';
+import { requireAuth, requireHR } from '@/lib/middleware/auth';
+import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { PaginationSchema } from '@/lib/api/types';
+import { logEmployeeAction } from '@/lib/utils/auditLog';
+import { getCached, employeeListKey, invalidateEmployeeCache, CacheTTL } from '@/lib/cache';
+
+// ============================================
+// GET /api/v1/employees - List employees
+// ============================================
+
+const listEmployeesSchema = z.object({
+  ...PaginationSchema.shape,
+  status: z.enum(['active', 'inactive', 'terminated', 'resigned']).optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  employmentType: z.enum(['permanent', 'contract', 'probation', 'intern', 'part_time']).optional(),
+  search: z.string().optional(),
 });
 
-/**
- * GET /api/v1/employees
- * List employees with filtering, search, and pagination
- */
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
+async function listHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    const employerId = searchParams.get('employerId');
-    if (!employerId) {
-      return NextResponse.json(
-        { error: 'employerId is required' },
-        { status: 400 }
-      );
-    }
+  const userContext = await requireAuth(request);
 
-    const options = {
-      status: searchParams.get('status') || undefined,
-      department: searchParams.get('department') || undefined,
-      position: searchParams.get('position') || undefined,
-      employmentType: searchParams.get('employmentType') || undefined,
-      search: searchParams.get('search') || undefined,
-      sortBy: (searchParams.get('sortBy') as any) || 'fullName',
-      sortOrder: (searchParams.get('sortOrder') as any) || 'asc',
-      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
-      offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
-    };
+  // Parse query parameters
+  const { searchParams } = new URL(request.url);
+  const params = Object.fromEntries(searchParams.entries());
+  const validatedParams = listEmployeesSchema.parse(params);
 
-    const listEmployees = await container.getListEmployeesUseCase();
-    const result = await listEmployees.execute(employerId, options as any);
+  // Create cache key based on filters
+  const filterKey = JSON.stringify({
+    status: validatedParams.status,
+    department: validatedParams.department,
+    position: validatedParams.position,
+    employmentType: validatedParams.employmentType,
+    search: validatedParams.search,
+    sortBy: validatedParams.sortBy,
+    sortOrder: validatedParams.sortOrder,
+    page: validatedParams.page,
+    limit: validatedParams.limit,
+  });
 
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    console.error('Failed to list employees:', error);
-    return NextResponse.json(
-      { error: 'Failed to list employees', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
+  // Use cache for employee list (10 min TTL)
+  const result = await getCached(
+    employeeListKey(userContext.companyId, filterKey),
+    async () => {
+      const supabase = await createClient();
+
+      // Build query
+      let query = supabase
+        .from('employees')
+        .select('*', { count: 'exact' })
+        .eq('employer_id', userContext.companyId);
+
+      // Apply filters
+      if (validatedParams.status) {
+        query = query.eq('employment_status', validatedParams.status);
+      }
+
+      if (validatedParams.department) {
+        query = query.eq('department', validatedParams.department);
+      }
+
+      if (validatedParams.position) {
+        query = query.eq('position', validatedParams.position);
+      }
+
+      if (validatedParams.employmentType) {
+        query = query.eq('employment_type', validatedParams.employmentType);
+      }
+
+      if (validatedParams.search) {
+        const searchPattern = `%${validatedParams.search}%`;
+        query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},employee_number.ilike.${searchPattern}`);
+      }
+
+      // Apply sorting
+      if (validatedParams.sortBy) {
+        query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      // Apply pagination
+      const from = (validatedParams.page - 1) * validatedParams.limit;
+      const to = from + validatedParams.limit - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return { data: data || [], count: count || 0 };
+    },
+    CacheTTL.MEDIUM // 15 minutes
+  );
+
+  return paginatedResponse(
+    result.data,
+    result.count,
+    validatedParams.page,
+    validatedParams.limit
+  );
 }
 
-/**
- * POST /api/v1/employees
- * Create a new employee
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+// ============================================
+// POST /api/v1/employees - Create employee
+// ============================================
 
-    // Validate request body
-    const validatedData = createEmployeeSchema.parse(body);
+const createEmployeeSchema = z.object({
+  employeeNumber: z.string().min(1, 'Employee number is required'),
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(1, 'Phone number is required'),
+  dateOfBirth: z.string().datetime('Invalid date format'),
+  gender: z.enum(['male', 'female', 'other']),
+  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']),
+  nationality: z.string().min(1, 'Nationality is required'),
+  nationalId: z.string().optional(),
+  taxId: z.string().optional(),
+  address: z.string().min(1, 'Address is required'),
+  city: z.string().min(1, 'City is required'),
+  province: z.string().min(1, 'Province is required'),
+  postalCode: z.string().optional(),
+  department: z.string().min(1, 'Department is required'),
+  position: z.string().min(1, 'Position is required'),
+  employmentType: z.enum(['permanent', 'contract', 'probation', 'intern', 'part_time']),
+  joinDate: z.string().datetime('Invalid date format'),
+  manager: z.string().optional(),
+  workLocation: z.string().min(1, 'Work location is required'),
+  workSchedule: z.string().min(1, 'Work schedule is required'),
+  salary: z.number().positive().optional(),
+});
 
-    // Extract employerId and convert date strings to Date objects
-    const { employerId, ...rest } = validatedData;
-    const employeeData = {
-      ...rest,
-      dateOfBirth: new Date(validatedData.dateOfBirth),
-      joinDate: new Date(validatedData.joinDate),
-      contractStartDate: validatedData.contractStartDate ? new Date(validatedData.contractStartDate) : undefined,
-      contractEndDate: validatedData.contractEndDate ? new Date(validatedData.contractEndDate) : undefined,
-      probationEndDate: validatedData.probationEndDate ? new Date(validatedData.probationEndDate) : undefined,
-    };
+async function createHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    const createEmployee = await container.getCreateEmployeeUseCase();
-    const employee = await createEmployee.execute(employerId, employeeData as any);
+  // Only HR can create employees
+  const userContext = await requireHR(request);
 
-    return NextResponse.json(employee, { status: 201 });
-  } catch (error) {
-    console.error('Failed to create employee:', error);
+  // Parse and validate request body
+  const body = await request.json();
+  const validatedData = createEmployeeSchema.parse(body);
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
+  const supabase = await createClient();
 
-    return NextResponse.json(
-      { error: 'Failed to create employee', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Check if employee number already exists
+  const { data: existing } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('employer_id', userContext.companyId)
+    .eq('employee_number', validatedData.employeeNumber)
+    .single();
+
+  if (existing) {
+    return errorResponse(
+      'RES_3002',
+      'Employee number already exists',
+      409
     );
   }
+
+  // Create full name
+  const fullName = [
+    validatedData.firstName,
+    validatedData.middleName,
+    validatedData.lastName
+  ].filter(Boolean).join(' ');
+
+  // Create employee record
+  const employeeData = {
+    employer_id: userContext.companyId,
+    employee_number: validatedData.employeeNumber,
+    first_name: validatedData.firstName,
+    middle_name: validatedData.middleName,
+    last_name: validatedData.lastName,
+    full_name: fullName,
+    email: validatedData.email,
+    phone: validatedData.phone,
+    date_of_birth: validatedData.dateOfBirth,
+    gender: validatedData.gender,
+    marital_status: validatedData.maritalStatus,
+    nationality: validatedData.nationality,
+    national_id: validatedData.nationalId,
+    tax_id: validatedData.taxId,
+    address: validatedData.address,
+    city: validatedData.city,
+    province: validatedData.province,
+    postal_code: validatedData.postalCode,
+    department: validatedData.department,
+    position: validatedData.position,
+    employment_type: validatedData.employmentType,
+    employment_status: 'active',
+    join_date: validatedData.joinDate,
+    manager: validatedData.manager,
+    work_location: validatedData.workLocation,
+    work_schedule: validatedData.workSchedule,
+    salary: validatedData.salary,
+  };
+
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .insert(employeeData)
+    .select()
+    .single();
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to create employee',
+      500,
+      { details: error.message }
+    );
+  }
+
+  // Log employee creation
+  await logEmployeeAction(
+    userContext,
+    request,
+    'created',
+    employee.id,
+    employee.full_name,
+    {
+      before: {},
+      after: employee,
+    }
+  );
+
+  // Invalidate employee caches
+  await invalidateEmployeeCache(employee.id, userContext.companyId);
+
+  // TODO: Trigger employee.created webhook
+
+  return successResponse(employee, 201);
 }
+
+export const GET = withErrorHandler(listHandler);
+export const POST = withErrorHandler(createHandler);

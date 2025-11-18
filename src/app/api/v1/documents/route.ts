@@ -1,104 +1,199 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/di/container';
-import { z } from 'zod';
+/**
+ * Document Management Endpoints
+ * GET /api/v1/documents - List documents
+ * POST /api/v1/documents - Upload document
+ */
 
-const createDocumentSchema = z.object({
-  employeeId: z.string().uuid(),
-  employerId: z.string().uuid(),
-  documentType: z.enum(['ktp', 'npwp', 'kk', 'bpjs_kesehatan', 'bpjs_ketenagakerjaan', 'passport', 'ijazah', 'contract', 'other']),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  fileUrl: z.string().url(),
-  fileName: z.string().min(1),
-  fileSize: z.number().optional(),
-  mimeType: z.string().optional(),
-  issuedDate: z.string().datetime().optional(),
-  expiryDate: z.string().datetime().optional(),
-  documentNumber: z.string().optional(),
-  uploadedBy: z.string().uuid(),
-  uploadedByName: z.string().min(1),
-  tags: z.array(z.string()).default([]),
-  notes: z.string().optional(),
+import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
+import { withErrorHandler } from '@/lib/middleware/errorHandler';
+import { requireAuth } from '@/lib/middleware/auth';
+import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { PaginationSchema } from '@/lib/api/types';
+import { logDocumentAction } from '@/lib/utils/auditLog';
+
+// ============================================
+// GET /api/v1/documents - List documents
+// ============================================
+
+const listDocumentsSchema = z.object({
+  ...PaginationSchema.shape,
+  employeeId: z.string().uuid().optional(),
+  documentType: z.enum(['contract', 'id_card', 'certificate', 'policy', 'payslip', 'tax_form', 'other']).optional(),
+  isVerified: z.coerce.boolean().optional(),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
 });
 
-/**
- * GET /api/v1/documents
- * Get employee documents
- */
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const employeeId = searchParams.get('employeeId');
-    const employerId = searchParams.get('employerId');
+async function listHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    const repository = await container.getDocumentRepository();
+  const userContext = await requireAuth(request);
 
-    if (employeeId) {
-      const options = {
-        documentType: searchParams.get('documentType') || undefined,
-        isVerified: searchParams.get('isVerified') === 'true' ? true : searchParams.get('isVerified') === 'false' ? false : undefined,
-        limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
-        offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
-      };
-      const result = await repository.findDocumentsByEmployeeId(employeeId, options);
-      return NextResponse.json(result, { status: 200 });
-    }
+  // Parse query parameters
+  const { searchParams } = new URL(request.url);
+  const params = Object.fromEntries(searchParams.entries());
+  const validatedParams = listDocumentsSchema.parse(params);
 
-    if (employerId) {
-      const options = {
-        documentType: searchParams.get('documentType') || undefined,
-        isVerified: searchParams.get('isVerified') === 'true' ? true : searchParams.get('isVerified') === 'false' ? false : undefined,
-        isExpired: searchParams.get('isExpired') === 'true',
-        limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
-        offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
-      };
-      const result = await repository.findDocumentsByEmployerId(employerId, options);
-      return NextResponse.json(result, { status: 200 });
-    }
+  const supabase = await createClient();
 
-    return NextResponse.json({ error: 'Either employeeId or employerId is required' }, { status: 400 });
-  } catch (error) {
-    console.error('Failed to get documents:', error);
-    return NextResponse.json(
-      { error: 'Failed to get documents', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Build query
+  let query = supabase
+    .from('documents')
+    .select('*', { count: 'exact' })
+    .eq('employer_id', userContext.companyId);
+
+  // Apply filters
+  if (validatedParams.employeeId) {
+    query = query.eq('employee_id', validatedParams.employeeId);
+  }
+
+  if (validatedParams.documentType) {
+    query = query.eq('document_type', validatedParams.documentType);
+  }
+
+  if (validatedParams.isVerified !== undefined) {
+    query = query.eq('is_verified', validatedParams.isVerified);
+  }
+
+  if (validatedParams.year) {
+    const startDate = `${validatedParams.year}-01-01`;
+    const endDate = `${validatedParams.year}-12-31`;
+    query = query.gte('created_at', startDate).lte('created_at', endDate);
+  }
+
+  // Apply sorting
+  if (validatedParams.sortBy) {
+    query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
+  } else {
+    query = query.order('created_at', { ascending: false });
+  }
+
+  // Apply pagination
+  const from = (validatedParams.page - 1) * validatedParams.limit;
+  const to = from + validatedParams.limit - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to fetch documents',
+      500,
+      { details: error.message }
     );
   }
+
+  return paginatedResponse(
+    data || [],
+    count || 0,
+    validatedParams.page,
+    validatedParams.limit
+  );
 }
 
-/**
- * POST /api/v1/documents
- * Create a new document
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const validatedData = createDocumentSchema.parse(body);
+// ============================================
+// POST /api/v1/documents - Upload document
+// ============================================
 
-    const documentData = {
-      ...validatedData,
-      issuedDate: validatedData.issuedDate ? new Date(validatedData.issuedDate) : null,
-      expiryDate: validatedData.expiryDate ? new Date(validatedData.expiryDate) : null,
-      isVerified: false,
-      extractedData: null,
-      aiExtractedAt: null,
-      aiConfidence: null,
-      verifiedBy: null,
-      verifiedAt: null,
-    };
+const uploadDocumentSchema = z.object({
+  employeeId: z.string().uuid('Invalid employee ID'),
+  documentType: z.enum(['contract', 'id_card', 'certificate', 'policy', 'payslip', 'tax_form', 'other']),
+  documentName: z.string().min(1, 'Document name is required'),
+  documentUrl: z.string().url('Invalid document URL'),
+  fileSize: z.number().int().positive('File size must be positive'),
+  mimeType: z.string().min(1, 'MIME type is required'),
+  description: z.string().optional(),
+  expiryDate: z.string().datetime().optional(),
+});
 
-    const repository = await container.getDocumentRepository();
-    const document = await repository.createDocument(documentData as any);
+async function uploadHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    return NextResponse.json(document, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
-    }
-    console.error('Failed to create document:', error);
-    return NextResponse.json(
-      { error: 'Failed to create document', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  const userContext = await requireAuth(request);
+
+  // Parse and validate request body
+  const body = await request.json();
+  const validatedData = uploadDocumentSchema.parse(body);
+
+  const supabase = await createClient();
+
+  // Verify employee belongs to company
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, full_name, employer_id')
+    .eq('id', validatedData.employeeId)
+    .single();
+
+  if (employeeError || !employee) {
+    return errorResponse(
+      'RES_3001',
+      'Employee not found',
+      404
     );
   }
+
+  if (employee.employer_id !== userContext.companyId) {
+    return errorResponse(
+      'AUTH_1004',
+      'Employee does not belong to your company',
+      403
+    );
+  }
+
+  // Create document record
+  const documentData = {
+    employee_id: validatedData.employeeId,
+    employer_id: employee.employer_id,
+    employee_name: employee.full_name,
+    document_type: validatedData.documentType,
+    document_name: validatedData.documentName,
+    document_url: validatedData.documentUrl,
+    file_size: validatedData.fileSize,
+    mime_type: validatedData.mimeType,
+    description: validatedData.description,
+    expiry_date: validatedData.expiryDate ? validatedData.expiryDate.split('T')[0] : null,
+    is_verified: false,
+    uploaded_by: userContext.id,
+    uploaded_by_email: userContext.email,
+  };
+
+  const { data: document, error } = await supabase
+    .from('documents')
+    .insert(documentData)
+    .select()
+    .single();
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to upload document',
+      500,
+      { details: error.message }
+    );
+  }
+
+  // Log document upload
+  await logDocumentAction(
+    userContext,
+    request,
+    'uploaded',
+    document.id,
+    document.document_name,
+    {
+      employeeName: employee.full_name,
+      documentType: validatedData.documentType,
+      fileSize: validatedData.fileSize,
+    }
+  );
+
+  // TODO: Trigger document.uploaded webhook
+  // TODO: Send notification to HR/Admin for verification
+
+  return successResponse(document, 201);
 }
+
+export const GET = withErrorHandler(listHandler);
+export const POST = withErrorHandler(uploadHandler);

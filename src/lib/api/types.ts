@@ -2,6 +2,133 @@
  * API Types and Interfaces
  */
 
+import { z } from 'zod';
+
+// ============================================
+// COMMON API RESPONSE TYPES
+// ============================================
+
+// Base API Response
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: ApiError;
+  meta?: ApiMeta;
+}
+
+// Error Response
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+  timestamp: string;
+}
+
+// Metadata for pagination, etc.
+export interface ApiMeta {
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+  hasMore?: boolean;
+}
+
+// Pagination Parameters
+export const PaginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+export type PaginationParams = z.infer<typeof PaginationSchema>;
+
+// Common Filter Schema
+export const DateRangeSchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+});
+
+export type DateRangeParams = z.infer<typeof DateRangeSchema>;
+
+// Error Codes
+export enum ErrorCode {
+  // Authentication & Authorization (1xxx)
+  UNAUTHORIZED = 'AUTH_1001',
+  INVALID_TOKEN = 'AUTH_1002',
+  TOKEN_EXPIRED = 'AUTH_1003',
+  INSUFFICIENT_PERMISSIONS = 'AUTH_1004',
+  MFA_REQUIRED = 'AUTH_1005',
+  INVALID_MFA_CODE = 'AUTH_1006',
+
+  // Validation (2xxx)
+  VALIDATION_ERROR = 'VAL_2001',
+  INVALID_INPUT = 'VAL_2002',
+  MISSING_REQUIRED_FIELD = 'VAL_2003',
+
+  // Resource Errors (3xxx)
+  NOT_FOUND = 'RES_3001',
+  ALREADY_EXISTS = 'RES_3002',
+  RESOURCE_LOCKED = 'RES_3003',
+
+  // Business Logic (4xxx)
+  ALREADY_CLOCKED_IN = 'BIZ_4001',
+  INSUFFICIENT_LEAVE_BALANCE = 'BIZ_4002',
+  INVALID_DATE_RANGE = 'BIZ_4003',
+  DUPLICATE_REQUEST = 'BIZ_4004',
+  WORKFLOW_ERROR = 'BIZ_4005',
+
+  // Rate Limiting (5xxx)
+  RATE_LIMIT_EXCEEDED = 'RATE_5001',
+  TOO_MANY_ATTEMPTS = 'RATE_5002',
+
+  // Server Errors (9xxx)
+  INTERNAL_ERROR = 'SRV_9001',
+  DATABASE_ERROR = 'SRV_9002',
+  EXTERNAL_SERVICE_ERROR = 'SRV_9003',
+}
+
+// HTTP Status Codes
+export enum HttpStatus {
+  OK = 200,
+  CREATED = 201,
+  NO_CONTENT = 204,
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  CONFLICT = 409,
+  UNPROCESSABLE_ENTITY = 422,
+  TOO_MANY_REQUESTS = 429,
+  INTERNAL_SERVER_ERROR = 500,
+  SERVICE_UNAVAILABLE = 503,
+}
+
+// User Context (from JWT)
+export interface UserContext {
+  id: string;
+  email: string;
+  role: 'employee' | 'hr' | 'manager' | 'admin' | 'platform_admin';
+  employeeId?: string;
+  companyId: string;
+  departmentId?: string;
+}
+
+// Audit Log Context
+export interface AuditContext {
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, any>;
+}
+
+// ============================================
+// DOMAIN TYPES
+// ============================================
+
 // Employee Types
 export interface Employee {
   id: string;

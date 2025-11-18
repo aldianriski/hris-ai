@@ -1,78 +1,175 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/di/container';
-import { z } from 'zod';
+/**
+ * Payroll Period Endpoints
+ * GET /api/v1/payroll/periods - List payroll periods
+ * POST /api/v1/payroll/periods - Create payroll period
+ */
 
-const createPeriodSchema = z.object({
-  employerId: z.string().uuid(),
-  periodName: z.string().min(1),
-  periodType: z.enum(['monthly', 'biweekly', 'weekly']),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  paymentDate: z.string().datetime(),
-  status: z.enum(['draft', 'processing', 'review', 'approved', 'paid']).default('draft'),
+import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { successResponse, paginatedResponse, errorResponse } from '@/lib/api/response';
+import { withErrorHandler } from '@/lib/middleware/errorHandler';
+import { requireHR } from '@/lib/middleware/auth';
+import { standardRateLimit } from '@/lib/middleware/rateLimit';
+import { PaginationSchema } from '@/lib/api/types';
+import { logPayrollAction } from '@/lib/utils/auditLog';
+
+// ============================================
+// GET /api/v1/payroll/periods - List payroll periods
+// ============================================
+
+const listPeriodsSchema = z.object({
+  ...PaginationSchema.shape,
+  status: z.enum(['draft', 'processing', 'approved', 'paid']).optional(),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  month: z.coerce.number().int().min(1).max(12).optional(),
 });
 
-/**
- * GET /api/v1/payroll/periods
- * Get payroll periods
- */
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const employerId = searchParams.get('employerId');
+async function listHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    if (!employerId) {
-      return NextResponse.json({ error: 'employerId is required' }, { status: 400 });
-    }
+  const userContext = await requireHR(request);
 
-    const options = {
-      status: searchParams.get('status') || undefined,
-      year: searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined,
-      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
-      offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
-    };
+  // Parse query parameters
+  const { searchParams } = new URL(request.url);
+  const params = Object.fromEntries(searchParams.entries());
+  const validatedParams = listPeriodsSchema.parse(params);
 
-    const repository = await container.getPayrollRepository();
-    const result = await repository.findPeriodsByEmployerId(employerId, options);
+  const supabase = await createClient();
 
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    console.error('Failed to get payroll periods:', error);
-    return NextResponse.json(
-      { error: 'Failed to get payroll periods', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Build query
+  let query = supabase
+    .from('payroll_periods')
+    .select('*', { count: 'exact' })
+    .eq('employer_id', userContext.companyId);
+
+  // Apply filters
+  if (validatedParams.status) {
+    query = query.eq('status', validatedParams.status);
+  }
+
+  if (validatedParams.year) {
+    query = query.eq('year', validatedParams.year);
+  }
+
+  if (validatedParams.month) {
+    query = query.eq('month', validatedParams.month);
+  }
+
+  // Apply sorting
+  if (validatedParams.sortBy) {
+    query = query.order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' });
+  } else {
+    query = query.order('year', { ascending: false }).order('month', { ascending: false });
+  }
+
+  // Apply pagination
+  const from = (validatedParams.page - 1) * validatedParams.limit;
+  const to = from + validatedParams.limit - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to fetch payroll periods',
+      500,
+      { details: error.message }
     );
   }
+
+  return paginatedResponse(
+    data || [],
+    count || 0,
+    validatedParams.page,
+    validatedParams.limit
+  );
 }
 
-/**
- * POST /api/v1/payroll/periods
- * Create a new payroll period
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const validatedData = createPeriodSchema.parse(body);
+// ============================================
+// POST /api/v1/payroll/periods - Create payroll period
+// ============================================
 
-    const periodData = {
-      ...validatedData,
-      startDate: new Date(validatedData.startDate),
-      endDate: new Date(validatedData.endDate),
-      paymentDate: new Date(validatedData.paymentDate),
-    };
+const createPeriodSchema = z.object({
+  periodStart: z.string().datetime('Invalid start date'),
+  periodEnd: z.string().datetime('Invalid end date'),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int().min(2000).max(2100),
+});
 
-    const repository = await container.getPayrollRepository();
-    const period = await repository.createPeriod(periodData as any);
+async function createHandler(request: NextRequest) {
+  await standardRateLimit(request);
 
-    return NextResponse.json(period, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
-    }
-    console.error('Failed to create payroll period:', error);
-    return NextResponse.json(
-      { error: 'Failed to create payroll period', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+  // Only HR can create payroll periods
+  const userContext = await requireHR(request);
+
+  // Parse and validate request body
+  const body = await request.json();
+  const validatedData = createPeriodSchema.parse(body);
+
+  const supabase = await createClient();
+
+  // Check if period already exists for this month/year
+  const { data: existing } = await supabase
+    .from('payroll_periods')
+    .select('id')
+    .eq('employer_id', userContext.companyId)
+    .eq('year', validatedData.year)
+    .eq('month', validatedData.month)
+    .single();
+
+  if (existing) {
+    return errorResponse(
+      'RES_3002',
+      'Payroll period already exists for this month',
+      409
     );
   }
+
+  // Create payroll period
+  const periodData = {
+    employer_id: userContext.companyId,
+    period_start: validatedData.periodStart.split('T')[0],
+    period_end: validatedData.periodEnd.split('T')[0],
+    month: validatedData.month,
+    year: validatedData.year,
+    status: 'draft',
+    total_employees: 0,
+    total_gross_salary: 0,
+    total_deductions: 0,
+    total_net_salary: 0,
+  };
+
+  const { data: period, error } = await supabase
+    .from('payroll_periods')
+    .insert(periodData)
+    .select()
+    .single();
+
+  if (error) {
+    return errorResponse(
+      'SRV_9002',
+      'Failed to create payroll period',
+      500,
+      { details: error.message }
+    );
+  }
+
+  // Log payroll period creation
+  await logPayrollAction(
+    userContext,
+    request,
+    'created',
+    period.id,
+    {
+      year: validatedData.year,
+      month: validatedData.month,
+    }
+  );
+
+  return successResponse(period, 201);
 }
+
+export const GET = withErrorHandler(listHandler);
+export const POST = withErrorHandler(createHandler);
