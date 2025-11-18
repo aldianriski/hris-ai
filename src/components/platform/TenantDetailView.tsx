@@ -23,6 +23,7 @@ import { TenantUsageTab } from './tenant-detail-tabs/TenantUsageTab';
 import { TenantSettingsTab } from './tenant-detail-tabs/TenantSettingsTab';
 import { TenantAuditLogsTab } from './tenant-detail-tabs/TenantAuditLogsTab';
 import { TenantSupportTab } from './tenant-detail-tabs/TenantSupportTab';
+import { useRealtimeTenant } from '@/lib/realtime/use-realtime-tenants';
 
 interface TenantDetailViewProps {
   tenantId: string;
@@ -67,9 +68,11 @@ const planBadgeColors = {
 
 export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use real-time hook for automatic updates
+  const { tenant, setTenant } = useRealtimeTenant(tenantId, null);
 
   useEffect(() => {
     async function fetchTenant() {
@@ -92,7 +95,7 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
     }
 
     fetchTenant();
-  }, [tenantId]);
+  }, [tenantId, setTenant]);
 
   if (loading) {
     return (

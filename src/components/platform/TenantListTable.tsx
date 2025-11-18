@@ -25,6 +25,7 @@ import {
   Trash2,
   Building2
 } from 'lucide-react';
+import { useRealtimeTenants } from '@/lib/realtime/use-realtime-tenants';
 
 // Mock data - will be replaced with real API
 const mockTenants = [
@@ -96,9 +97,11 @@ export function TenantListTable() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [planFilter, setPlanFilter] = useState<string>('all');
-  const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use real-time hook for automatic updates
+  const { tenants, setTenants } = useRealtimeTenants([]);
 
   useEffect(() => {
     async function fetchTenants() {
@@ -133,7 +136,7 @@ export function TenantListTable() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, statusFilter, planFilter]);
+  }, [searchQuery, statusFilter, planFilter, setTenants]);
 
   const filteredTenants = tenants;
 
