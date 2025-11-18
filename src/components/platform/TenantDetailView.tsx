@@ -248,7 +248,7 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
               }
             >
               <div className="p-6">
-                <TenantBillingTab tenant={tenant} />
+                <TenantBillingTab tenantId={tenantId} />
               </div>
             </Tab>
 
@@ -276,7 +276,7 @@ export function TenantDetailView({ tenantId }: TenantDetailViewProps) {
               }
             >
               <div className="p-6">
-                <TenantSettingsTab tenant={tenant} />
+                <TenantSettingsTab tenantId={tenantId} />
               </div>
             </Tab>
 
