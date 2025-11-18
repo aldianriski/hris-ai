@@ -10,6 +10,10 @@ import { withErrorHandler } from '@/lib/middleware/errorHandler';
 import { requireAuth, checkEmployeeAccess } from '@/lib/middleware/auth';
 import { standardRateLimit } from '@/lib/middleware/rateLimit';
 import { logPayrollAction } from '@/lib/utils/auditLog';
+import { generatePayslipPDF } from '@/lib/pdf/generator';
+import { uploadFile } from '@/lib/storage/upload';
+import { sendPayslipReadyEmail } from '@/lib/email/sender';
+import { STORAGE_BUCKETS } from '@/lib/storage/config';
 
 async function handler(
   request: NextRequest,
@@ -163,8 +167,72 @@ async function handler(
     }
   );
 
-  // TODO: Generate PDF payslip document
-  // TODO: Send email notification to employee with payslip
+  // Generate PDF payslip document
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const pdfResult = await generatePayslipPDF({
+    companyName: 'HRIS Company', // TODO: Get from company settings
+    employeeName: employee.full_name,
+    employeeId: employeeId,
+    position: employee.position || 'N/A',
+    department: employee.department || 'N/A',
+    month: monthNames[period.month - 1],
+    year: period.year,
+    periodStart: period.period_start,
+    periodEnd: period.period_end,
+    baseSalary: payrollDetail.base_salary || 0,
+    allowances: payrollDetail.allowances || 0,
+    overtime: payrollDetail.overtime || 0,
+    grossSalary: payrollDetail.gross_salary || 0,
+    bpjsKesehatan: payrollDetail.bpjs_kesehatan || 0,
+    bpjsJHT: payrollDetail.bpjs_jht || 0,
+    bpjsJP: payrollDetail.bpjs_jp || 0,
+    pph21: payrollDetail.pph21 || 0,
+    totalDeductions: payrollDetail.total_deductions || 0,
+    netSalary: payrollDetail.net_salary || 0,
+    generatedDate: new Date().toLocaleDateString('id-ID'),
+  });
+
+  let pdfUrl: string | undefined;
+
+  if (pdfResult.success && pdfResult.buffer) {
+    // Convert buffer to File object for upload
+    const pdfFile = new File(
+      [pdfResult.buffer],
+      `payslip-${employee.full_name.replace(/\s/g, '-')}-${period.year}-${period.month}.pdf`,
+      { type: 'application/pdf' }
+    );
+
+    // Upload PDF to storage
+    const uploadResult = await uploadFile(pdfFile, {
+      fileType: 'payslip',
+      folder: `${userContext.companyId}/payslips/${period.year}/${period.month}`,
+    });
+
+    if (uploadResult.success) {
+      pdfUrl = uploadResult.url;
+      // Update payslip record with PDF URL
+      await supabase
+        .from('payslips')
+        .update({ pdf_url: pdfUrl })
+        .eq('id', payslip.id);
+    }
+  }
+
+  // Send email notification to employee with payslip
+  if (employee.email) {
+    const emailResult = await sendPayslipReadyEmail(employee.email, {
+      employeeName: employee.full_name,
+      month: monthNames[period.month - 1],
+      year: period.year,
+      netSalary: payrollDetail.net_salary || 0,
+      downloadUrl: pdfUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payslips/${payslip.id}`,
+      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
+    });
+
+    if (!emailResult.success) {
+      console.error('Failed to send payslip email:', emailResult.error);
+    }
+  }
 
   return successResponse({
     ...payslip,
