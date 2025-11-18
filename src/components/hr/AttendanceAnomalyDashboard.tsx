@@ -1,27 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardBody, Chip, Button, Tabs, Tab } from '@heroui/react';
+import { Card, CardBody, Chip, Button, Tabs, Tab, Spinner } from '@heroui/react';
 import { AlertTriangle, MapPin, Clock, User, CheckCircle, XCircle, Eye } from 'lucide-react';
-
-interface Anomaly {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  date: string;
-  type: 'location_deviation' | 'time_deviation' | 'excessive_hours' | 'pattern_break' | 'impossible_travel';
-  severity: 'high' | 'medium' | 'low';
-  description: string;
-  normalValue: string;
-  anomalousValue: string;
-  aiConfidence: number;
-  status: 'pending' | 'approved' | 'rejected';
-  location?: {
-    normal: { lat: number; lng: number; address: string };
-    anomalous: { lat: number; lng: number; address: string };
-    distance: number;
-  };
-}
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useAttendanceAnomalies, useApproveAnomaly, useRejectAnomaly } from '@/lib/hooks/useAttendanceAnomalies';
 
 const SEVERITY_COLOR_MAP = {
   high: 'danger',
@@ -38,74 +21,45 @@ const ANOMALY_TYPE_LABELS = {
 };
 
 export function AttendanceAnomalyDashboard() {
-  const [activeTab, setActiveTab] = useState('pending');
+  const { employerId } = useAuth();
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const { data, isLoading } = useAttendanceAnomalies(employerId, { status: activeTab });
+  const approveAnomaly = useApproveAnomaly();
+  const rejectAnomaly = useRejectAnomaly();
 
-  // Mock data - TODO: fetch from API
-  const anomalies: Anomaly[] = [
-    {
-      id: '1',
-      employeeId: 'EMP001',
-      employeeName: 'John Doe',
-      date: '2024-11-17',
-      type: 'location_deviation',
-      severity: 'high',
-      description: 'Clock-in location 12.5 km away from usual office location',
-      normalValue: 'Main Office Jakarta',
-      anomalousValue: 'Bekasi Area',
-      aiConfidence: 95,
-      status: 'pending',
-      location: {
-        normal: { lat: -6.2088, lng: 106.8456, address: 'Main Office, Jakarta' },
-        anomalous: { lat: -6.2383, lng: 107.0011, address: 'Bekasi' },
-        distance: 12.5,
-      },
-    },
-    {
-      id: '2',
-      employeeId: 'EMP002',
-      employeeName: 'Jane Smith',
-      date: '2024-11-16',
-      type: 'excessive_hours',
-      severity: 'medium',
-      description: 'Worked 14 hours without break',
-      normalValue: '8-9 hours',
-      anomalousValue: '14 hours',
-      aiConfidence: 88,
-      status: 'pending',
-    },
-    {
-      id: '3',
-      employeeId: 'EMP003',
-      employeeName: 'Bob Johnson',
-      date: '2024-11-15',
-      type: 'time_deviation',
-      severity: 'low',
-      description: 'Clock-in 4 hours earlier than average',
-      normalValue: '09:00 AM',
-      anomalousValue: '05:00 AM',
-      aiConfidence: 75,
-      status: 'pending',
-    },
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Spinner size="lg" label="Loading attendance anomalies..." />
+      </div>
+    );
+  }
+
+  const anomalies = data?.anomalies || [];
 
   const stats = {
-    total: anomalies.length,
+    total: data?.total || 0,
     pending: anomalies.filter((a) => a.status === 'pending').length,
     high: anomalies.filter((a) => a.severity === 'high').length,
-    falsePositives: 2,
   };
 
-  const filteredAnomalies = anomalies.filter((a) => a.status === activeTab);
+  const handleApprove = async (anomalyId: string) => {
+    await approveAnomaly.mutateAsync({ anomalyId });
+  };
+
+  const handleReject = async (anomalyId: string) => {
+    await rejectAnomaly.mutateAsync({ anomalyId });
+  };
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-red-50 dark:bg-red-900/20">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-orange-50 dark:bg-orange-900/20">
           <CardBody className="text-center">
-            <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-red-600">{stats.high}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">High Severity</p>
+            <AlertTriangle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-orange-600">{stats.total}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Anomalies</p>
           </CardBody>
         </Card>
 
@@ -117,137 +71,177 @@ export function AttendanceAnomalyDashboard() {
           </CardBody>
         </Card>
 
-        <Card className="bg-blue-50 dark:bg-blue-900/20">
+        <Card className="bg-red-50 dark:bg-red-900/20">
           <CardBody className="text-center">
-            <User className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Detected</p>
-          </CardBody>
-        </Card>
-
-        <Card className="bg-green-50 dark:bg-green-900/20">
-          <CardBody className="text-center">
-            <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-green-600">
-              {((stats.total - stats.falsePositives) / stats.total * 100).toFixed(0)}%
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</p>
+            <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-red-600">{stats.high}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">High Severity</p>
           </CardBody>
         </Card>
       </div>
 
-      {/* Anomaly List */}
+      {/* Anomalies List */}
       <Card>
         <CardBody>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Attendance Anomalies</h3>
+            <Chip size="sm" variant="flat" color="success">
+              AI-powered detection
+            </Chip>
+          </div>
+
           <Tabs
             selectedKey={activeTab}
-            onSelectionChange={(key) => setActiveTab(key as string)}
-            classNames={{
-              tabList: 'w-full',
-              cursor: 'bg-primary',
-            }}
+            onSelectionChange={(key) => setActiveTab(key as 'pending' | 'approved' | 'rejected')}
+            className="mb-4"
           >
-            <Tab key="pending" title={`Pending (${stats.pending})`}>
-              <div className="py-4 space-y-3">
-                {filteredAnomalies.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No pending anomalies</p>
-                ) : (
-                  filteredAnomalies.map((anomaly) => (
-                    <div
-                      key={anomaly.id}
-                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-medium">{anomaly.employeeName}</h4>
-                            <span className="text-sm text-gray-500">({anomaly.employeeId})</span>
-                            <Chip
-                              size="sm"
-                              color={SEVERITY_COLOR_MAP[anomaly.severity]}
-                              variant="flat"
-                            >
-                              {anomaly.severity.toUpperCase()}
-                            </Chip>
-                            <Chip size="sm" variant="flat">
-                              {ANOMALY_TYPE_LABELS[anomaly.type]}
+            <Tab key="pending" title={`Pending (${stats.pending})`} />
+            <Tab key="approved" title="Approved" />
+            <Tab key="rejected" title="Rejected" />
+          </Tabs>
+
+          {anomalies.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" />
+              <p className="text-gray-500">No {activeTab} anomalies found</p>
+              <p className="text-sm text-gray-400 mt-2">
+                {activeTab === 'pending'
+                  ? 'All attendance patterns look normal!'
+                  : `No ${activeTab} anomalies to display`}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {anomalies.map((anomaly) => (
+                <Card key={anomaly.id} className="shadow-sm">
+                  <CardBody className="p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-xl">
+                        <AlertTriangle className="h-6 w-6 text-orange-600" />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold">{anomaly.employeeName}</h4>
+                              <Chip size="sm" variant="flat">
+                                {ANOMALY_TYPE_LABELS[anomaly.type]}
+                              </Chip>
+                              <Chip
+                                size="sm"
+                                color={SEVERITY_COLOR_MAP[anomaly.severity]}
+                                variant="flat"
+                              >
+                                {anomaly.severity}
+                              </Chip>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {anomaly.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Normal Pattern</p>
+                            <p className="text-sm font-medium">{anomaly.normalValue}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Detected Anomaly</p>
+                            <p className="text-sm font-medium text-orange-600">
+                              {anomaly.anomalousValue}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <User className="w-3 h-3" />
+                              <span>ID: {anomaly.employeeId}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              <span>{new Date(anomaly.date).toLocaleDateString('id-ID')}</span>
+                            </div>
+                            <Chip size="sm" variant="flat" color="secondary">
+                              AI Confidence: {(anomaly.aiConfidence * 100).toFixed(0)}%
                             </Chip>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {anomaly.description}
-                          </p>
-                        </div>
-                        <Chip size="sm" color="secondary" variant="flat">
-                          AI: {anomaly.aiConfidence}%
-                        </Chip>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
-                        <div>
-                          <p className="text-gray-500">Normal Pattern</p>
-                          <p className="font-medium">{anomaly.normalValue}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Detected Value</p>
-                          <p className="font-medium text-red-600">{anomaly.anomalousValue}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Date</p>
-                          <p className="font-medium">
-                            {new Date(anomaly.date).toLocaleDateString('id-ID')}
-                          </p>
-                        </div>
-                      </div>
+                          {anomaly.status === 'pending' && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                color="success"
+                                variant="flat"
+                                startContent={<CheckCircle className="w-4 h-4" />}
+                                onPress={() => handleApprove(anomaly.id)}
+                                isLoading={approveAnomaly.isPending}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                color="danger"
+                                variant="flat"
+                                startContent={<XCircle className="w-4 h-4" />}
+                                onPress={() => handleReject(anomaly.id)}
+                                isLoading={rejectAnomaly.isPending}
+                              >
+                                Reject
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="light"
+                                isIconOnly
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
 
-                      {anomaly.location && (
-                        <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                          <div className="flex items-start gap-2 text-sm">
-                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                            <div className="space-y-1">
-                              <p>
-                                <span className="font-medium">Normal:</span> {anomaly.location.normal.address}
-                              </p>
-                              <p>
-                                <span className="font-medium">Detected:</span> {anomaly.location.anomalous.address}
-                              </p>
-                              <p className="text-orange-600">
-                                Distance: {anomaly.location.distance} km
-                              </p>
+                          {anomaly.status !== 'pending' && (
+                            <Chip
+                              color={anomaly.status === 'approved' ? 'success' : 'danger'}
+                              variant="flat"
+                              size="sm"
+                              startContent={
+                                anomaly.status === 'approved' ? (
+                                  <CheckCircle className="w-3 h-3" />
+                                ) : (
+                                  <XCircle className="w-3 h-3" />
+                                )
+                              }
+                            >
+                              {anomaly.status}
+                            </Chip>
+                          )}
+                        </div>
+
+                        {anomaly.location && (
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+                              <div className="text-sm">
+                                <p className="font-medium text-blue-900 dark:text-blue-100">
+                                  Location Deviation Detected
+                                </p>
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                  Distance from usual location: {anomaly.location.distance} km
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Button size="sm" color="success" startContent={<CheckCircle className="w-4 h-4" />}>
-                          Approve
-                        </Button>
-                        <Button size="sm" color="danger" variant="flat" startContent={<XCircle className="w-4 h-4" />}>
-                          Reject
-                        </Button>
-                        <Button size="sm" variant="light" startContent={<Eye className="w-4 h-4" />}>
-                          Details
-                        </Button>
-                        <Button size="sm" variant="light" color="warning">
-                          False Positive
-                        </Button>
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </Tab>
-            <Tab key="approved" title="Approved">
-              <div className="py-8 text-center text-gray-500">
-                No approved anomalies
-              </div>
-            </Tab>
-            <Tab key="rejected" title="Rejected">
-              <div className="py-8 text-center text-gray-500">
-                No rejected anomalies
-              </div>
-            </Tab>
-          </Tabs>
+                  </CardBody>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardBody>
       </Card>
     </div>
