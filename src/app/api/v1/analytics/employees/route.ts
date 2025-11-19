@@ -123,30 +123,23 @@ async function handler(request: NextRequest) {
       ? Math.round((terminations / averageEmployees) * 100 * 10) / 10
       : 0;
 
+        // Format department breakdown for frontend
+        const departmentBreakdown = Object.entries(departmentDistribution).map(([department, count]) => ({
+          department,
+          count,
+        }));
+
+        // Calculate growth rate (net growth / starting headcount * 100)
+        const startingHeadcount = headcountByStatus.active + terminations;
+        const growthRate = startingHeadcount > 0
+          ? Math.round(((newHires - terminations) / startingHeadcount) * 100 * 10) / 10
+          : 0;
+
         return {
-          headcount: {
-            total: employees?.length || 0,
-            byStatus: headcountByStatus,
-          },
-          distribution: {
-            byDepartment: departmentDistribution,
-            byPosition: positionDistribution,
-          },
-          tenure: {
-            averageMonths: averageTenure,
-            averageYears: Math.round(averageTenure / 12 * 10) / 10,
-          },
-          growth: {
-            period: {
-              start: startDate.toISOString().split('T')[0],
-              end: endDate.toISOString().split('T')[0],
-            },
-            newHires,
-            terminations,
-            netGrowth: newHires - terminations,
-            turnoverRate: `${turnoverRate}%`,
-          },
-          lastUpdated: new Date().toISOString(),
+          totalEmployees: employees?.length || 0,
+          activeEmployees: headcountByStatus.active,
+          departmentBreakdown,
+          growthRate,
         };
       },
       CacheTTL.MEDIUM // 15 minutes

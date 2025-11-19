@@ -114,41 +114,29 @@ async function handler(request: NextRequest) {
       ? Math.round((totalHours / recordsWithHours.length) * 10) / 10
       : 0;
 
-    // Daily attendance trend
-    const dailyTrend: Record<string, number> = {};
+    // Daily attendance trend - convert to array format for frontend
+    const dailyTrendMap: Record<string, number> = {};
     attendanceRecords?.forEach(record => {
       if (record.date) {
-        dailyTrend[record.date] = (dailyTrend[record.date] || 0) + 1;
+        dailyTrendMap[record.date] = (dailyTrendMap[record.date] || 0) + 1;
       }
     });
 
+    // Convert to array and calculate rate per day
+    const trends = Object.entries(dailyTrendMap).map(([date, count]) => ({
+      date,
+      rate: totalEmployees ? Math.round((count / (totalEmployees || 1)) * 100 * 10) / 10 : 0,
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calculate absences (expected - actual)
+    const absences = expectedAttendance - actualAttendance;
+
     const analytics = {
-      period: {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
-        workingDays,
-      },
-      overview: {
-        totalEmployees: totalEmployees || 0,
-        expectedAttendance,
-        actualAttendance,
-        attendanceRate: `${attendanceRate}%`,
-      },
-      punctuality: {
-        lateArrivals,
-        lateArrivalRate: actualAttendance > 0
-          ? `${Math.round((lateArrivals / actualAttendance) * 100 * 10) / 10}%`
-          : '0%',
-        earlyDepartures,
-      },
-      workHours: {
-        average: averageWorkHours,
-        total: Math.round(totalHours * 10) / 10,
-      },
-      trends: {
-        daily: dailyTrend,
-      },
-      lastUpdated: new Date().toISOString(),
+      averageAttendanceRate: attendanceRate,
+      lateArrivals,
+      earlyDepartures,
+      absences,
+      trends,
     };
 
     return successResponse(analytics);

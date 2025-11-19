@@ -59,21 +59,26 @@ export const workflowService = {
     if (filters?.status) params.status = filters.status;
     if (filters?.workflowType) params.workflowType = filters.workflowType;
 
-    return apiClient.get<{ workflows: WorkflowInstance[]; total: number }>('/workflows', params);
+    return apiClient.get<{ workflows: WorkflowInstance[]; total: number }>('/onboarding/workflows', params);
   },
 
   /**
    * Get single workflow by ID
    */
   getById: async (workflowId: string) => {
-    return apiClient.get<WorkflowInstance>(`/workflows/${workflowId}`);
+    return apiClient.get<WorkflowInstance>(`/onboarding/workflows/${workflowId}`);
   },
 
   /**
    * Create new workflow
    */
   create: async (data: CreateWorkflowData) => {
-    return apiClient.post<WorkflowInstance>('/workflows', data);
+    // Map frontend data to backend format
+    const backendData = {
+      employeeId: data.entityId,
+      workflowType: data.workflowType,
+    };
+    return apiClient.post<WorkflowInstance>('/onboarding/workflows', backendData);
   },
 
   /**
@@ -81,7 +86,7 @@ export const workflowService = {
    */
   updateStep: async (data: UpdateWorkflowStepData) => {
     return apiClient.patch<{ success: boolean }>(
-      `/workflows/${data.workflowId}/steps/${data.stepNumber}`,
+      `/onboarding/workflows/${data.workflowId}/steps/${data.stepNumber}`,
       { status: data.status }
     );
   },
@@ -91,7 +96,7 @@ export const workflowService = {
    */
   execute: async (workflowId: string) => {
     return apiClient.post<{ success: boolean; message: string }>(
-      `/workflows/${workflowId}/execute`,
+      `/onboarding/workflows/${workflowId}/execute`,
       {}
     );
   },

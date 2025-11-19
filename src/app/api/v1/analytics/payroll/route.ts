@@ -117,40 +117,40 @@ async function handler(request: NextRequest) {
       ? Math.round(totalNetSalary / employeeCount)
       : 0;
 
-    // Deduction breakdown (simplified)
-    const totalBPJSKesehatan = payrollDetails?.reduce((sum, d) => sum + (d.bpjs_kesehatan || 0), 0) || 0;
-    const totalBPJSJHT = payrollDetails?.reduce((sum, d) => sum + (d.bpjs_jht || 0), 0) || 0;
-    const totalBPJSJP = payrollDetails?.reduce((sum, d) => sum + (d.bpjs_jp || 0), 0) || 0;
-    const totalPPh21 = payrollDetails?.reduce((sum, d) => sum + (d.pph21 || 0), 0) || 0;
+    // Get department breakdown - need to join with employees
+    const { data: employees } = await supabase
+      .from('employees')
+      .select('id, department, base_salary')
+      .eq('employer_id', userContext.companyId)
+      .eq('status', 'active');
+
+    // Group payroll by department
+    const deptPayroll: Record<string, number> = {};
+    employees?.forEach(emp => {
+      const dept = emp.department || 'Unassigned';
+      deptPayroll[dept] = (deptPayroll[dept] || 0) + (emp.base_salary || 0);
+    });
+
+    const payrollByDepartment = Object.entries(deptPayroll).map(([department, amount]) => ({
+      department,
+      amount,
+    }));
+
+    // Convert monthly trend to array format
+    const monthlyTrendArray = Object.entries(monthlyTrend).map(([monthNum, data]) => {
+      const monthDate = new Date(year, parseInt(monthNum) - 1, 1);
+      const monthStr = monthDate.toLocaleDateString('en-US', { month: 'short' });
+      return {
+        month: monthStr,
+        amount: data.netSalary,
+      };
+    });
 
     const analytics = {
-      year,
-      summary: {
-        totalGrossSalary,
-        totalDeductions,
-        totalNetSalary,
-        averageGrossSalary,
-        averageNetSalary,
-        employeeCount,
-      },
-      deductions: {
-        bpjsKesehatan: totalBPJSKesehatan,
-        bpjsJHT: totalBPJSJHT,
-        bpjsJP: totalBPJSJP,
-        pph21: totalPPh21,
-        total: totalDeductions,
-      },
-      trends: {
-        monthly: monthlyTrend,
-      },
-      periods: {
-        total: payrollPeriods?.length || 0,
-        draft: payrollPeriods?.filter(p => p.status === 'draft').length || 0,
-        processing: payrollPeriods?.filter(p => p.status === 'processing').length || 0,
-        approved: payrollPeriods?.filter(p => p.status === 'approved').length || 0,
-        paid: payrollPeriods?.filter(p => p.status === 'paid').length || 0,
-      },
-      lastUpdated: new Date().toISOString(),
+      totalPayroll: totalNetSalary,
+      averageSalary: averageNetSalary,
+      payrollByDepartment,
+      monthlyTrend: monthlyTrendArray,
     };
 
     return successResponse(analytics);

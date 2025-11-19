@@ -131,32 +131,17 @@ async function handler(request: NextRequest) {
       }
     });
 
-    // Get active employees count for completion tracking
-    const { count: totalEmployees } = await supabase
-      .from('employees')
-      .select('id', { count: 'exact', head: true })
-      .eq('employer_id', userContext.companyId)
-      .eq('status', 'active');
+    // Convert rating distribution to array format for frontend
+    const ratingDistribution = Object.entries(ratingsDistribution).map(([rating, count]) => ({
+      rating: parseInt(rating),
+      count,
+    }));
 
     const analytics = {
-      year,
-      overview: {
-        totalReviews,
-        completedReviews,
-        completionRate: `${completionRate}%`,
-        totalEmployees: totalEmployees || 0,
-        reviewCoverage: totalEmployees && totalEmployees > 0
-          ? `${Math.round((totalReviews / totalEmployees) * 100)}%`
-          : '0%',
-      },
-      status: byStatus,
-      types: byType,
-      ratings: {
-        distribution: ratingsDistribution,
-        average: averageRating,
-      },
-      byDepartment,
-      lastUpdated: new Date().toISOString(),
+      averageRating,
+      completedReviews,
+      pendingReviews: byStatus.draft + byStatus.submitted,
+      ratingDistribution,
     };
 
     return successResponse(analytics);
