@@ -7,6 +7,7 @@ import { PayrollPeriod } from '@/lib/api/types';
 import { payrollService } from '@/lib/api/services';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const STATUS_COLOR_MAP = {
   draft: 'default',
@@ -31,6 +32,7 @@ interface PayrollPeriodListProps {
 }
 
 export function PayrollPeriodList({ searchParams }: PayrollPeriodListProps) {
+  const { employerId } = useAuth();
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -40,13 +42,14 @@ export function PayrollPeriodList({ searchParams }: PayrollPeriodListProps) {
   const offset = (page - 1) * limit;
 
   useEffect(() => {
+    if (!employerId) return;
+
     const fetchPeriods = async () => {
       try {
         setLoading(true);
 
-        // TODO: Get actual employerId from auth context
         const params: any = {
-          employerId: 'temp-employer-id',
+          employerId,
           limit,
           offset,
         };
@@ -67,7 +70,7 @@ export function PayrollPeriodList({ searchParams }: PayrollPeriodListProps) {
     };
 
     fetchPeriods();
-  }, [searchParams, page]);
+  }, [searchParams, page, employerId]);
 
   if (loading) {
     return (
