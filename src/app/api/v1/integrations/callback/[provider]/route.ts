@@ -11,6 +11,7 @@ import { INTEGRATION_PROVIDERS, type IntegrationProvider, validateIntegrationCon
 import * as SlackOAuth from '@/lib/integrations/slack/oauth';
 import * as GoogleOAuth from '@/lib/integrations/google/oauth';
 import * as ZoomOAuth from '@/lib/integrations/zoom/oauth';
+import { getAppUrl } from '@/lib/config/env';
 
 async function handler(
   request: NextRequest,
@@ -64,8 +65,17 @@ async function handler(
   // Parse state to get user context
   let stateData: { userId: string; companyId: string };
   try {
-    stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-  } catch {
+    const decoded = Buffer.from(state, 'base64').toString();
+    const parsed = JSON.parse(decoded);
+
+    // Validate state structure
+    if (!parsed || typeof parsed !== 'object' || !parsed.userId || !parsed.companyId) {
+      throw new Error('Invalid state structure');
+    }
+
+    stateData = parsed;
+  } catch (error) {
+    console.error('Failed to parse OAuth state parameter:', error);
     return errorResponse(
       'VAL_2001',
       'Invalid state parameter',
@@ -195,7 +205,7 @@ async function handler(
   }
 
   // Redirect to success page
-  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/integrations?success=true&provider=${provider}`;
+  const redirectUrl = `${getAppUrl()}/settings/integrations?success=true&provider=${provider}`;
 
   return Response.redirect(redirectUrl, 302);
 }

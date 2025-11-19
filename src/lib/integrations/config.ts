@@ -3,6 +3,8 @@
  * OAuth and API configuration for third-party integrations
  */
 
+import { getAppUrl } from '@/lib/config/env';
+
 export const INTEGRATION_PROVIDERS = {
   SLACK: 'slack',
   GOOGLE: 'google',
@@ -17,7 +19,7 @@ export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[keyof typeof INTE
 export const SLACK_CONFIG = {
   CLIENT_ID: process.env.SLACK_CLIENT_ID || '',
   CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET || '',
-  REDIRECT_URI: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/integrations/callback/slack`,
+  REDIRECT_URI: `${getAppUrl()}/api/v1/integrations/callback/slack`,
   SCOPES: [
     'chat:write',           // Send messages
     'chat:write.public',    // Send messages to public channels
@@ -36,7 +38,7 @@ export const SLACK_CONFIG = {
 export const GOOGLE_CONFIG = {
   CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
-  REDIRECT_URI: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/integrations/callback/google`,
+  REDIRECT_URI: `${getAppUrl()}/api/v1/integrations/callback/google`,
   SCOPES: [
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events',
@@ -57,7 +59,7 @@ export const GOOGLE_CONFIG = {
 export const ZOOM_CONFIG = {
   CLIENT_ID: process.env.ZOOM_CLIENT_ID || '',
   CLIENT_SECRET: process.env.ZOOM_CLIENT_SECRET || '',
-  REDIRECT_URI: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/integrations/callback/zoom`,
+  REDIRECT_URI: `${getAppUrl()}/api/v1/integrations/callback/zoom`,
   SCOPES: [
     'meeting:write',
     'meeting:read',
