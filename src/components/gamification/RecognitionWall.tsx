@@ -1,5 +1,40 @@
 'use client';
 
+/**
+ * ⚠️ BACKEND API REQUIRED - Sprint 2
+ *
+ * This component currently uses mock data because there is no backend API endpoint
+ * for employee recognition/kudos features.
+ *
+ * Required APIs:
+ * - GET /api/v1/gamification/recognitions - List all recognitions
+ * - POST /api/v1/gamification/recognitions - Create new recognition
+ * - POST /api/v1/gamification/recognitions/{id}/like - Like a recognition
+ *
+ * Expected response format for GET:
+ * {
+ *   data: [{
+ *     id: string;
+ *     from_user_id: string;
+ *     to_user_id: string;
+ *     recognition_type: 'thank_you' | 'great_work' | 'team_player' | 'helpful' | 'innovative';
+ *     message: string;
+ *     points_awarded: number;
+ *     is_public: boolean;
+ *     created_at: string;
+ *     likes_count: number;
+ *     from_user: { id, name, avatar, position };
+ *     to_user: { id, name, avatar, position };
+ *   }]
+ * }
+ *
+ * Once the API is implemented, replace mock data with:
+ * - useEffect hook to fetch recognitions
+ * - POST handler for creating new recognitions
+ * - Loading and error states
+ * - Real-time updates via WebSocket or polling
+ */
+
 import { Card, CardBody, Avatar, Chip, Button, Textarea, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react';
 import { Heart, ThumbsUp, Star, Zap, Award, Plus, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -32,7 +67,8 @@ export function RecognitionWall() {
   const [selectedType, setSelectedType] = useState<string>('thank_you');
   const [message, setMessage] = useState('');
 
-  // Mock data - replace with actual API
+  // MOCK DATA - Replace with API call when backend is ready
+  // See documentation comment at top of file for details
   const recognitions: Recognition[] = [
     {
       id: '1',

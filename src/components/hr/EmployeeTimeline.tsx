@@ -1,5 +1,31 @@
 'use client';
 
+/**
+ * ⚠️ BACKEND API REQUIRED - Sprint 2
+ *
+ * This component currently uses mock data because there is no backend API endpoint
+ * for employee timeline/audit log events.
+ *
+ * Required API: GET /api/v1/employees/{employeeId}/timeline or /api/v1/audit-logs
+ *
+ * Expected response format:
+ * {
+ *   data: [{
+ *     id: string;
+ *     event_type: 'created' | 'updated' | 'promotion' | 'salary_change' | 'performance' | 'document';
+ *     title: string;
+ *     description: string;
+ *     created_at: string;
+ *     metadata?: object;
+ *   }]
+ * }
+ *
+ * Once the API is implemented, replace mock data with:
+ * - useEffect hook to fetch data
+ * - Loading and error states
+ * - Real-time data display
+ */
+
 import { Card, CardBody } from '@heroui/react';
 import { Clock, UserPlus, Edit, Award, DollarSign, FileText } from 'lucide-react';
 
@@ -17,7 +43,8 @@ interface EmployeeTimelineProps {
 }
 
 export function EmployeeTimeline({ employeeId }: EmployeeTimelineProps) {
-  // TODO: Fetch actual timeline events from API
+  // MOCK DATA - Replace with API call when backend is ready
+  // See documentation comment at top of file for details
   const events: TimelineEvent[] = [
     {
       id: '1',
