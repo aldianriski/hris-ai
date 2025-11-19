@@ -227,7 +227,24 @@ Should this leave request be auto-approved?`;
       temperature: 0.3,
     });
 
-    const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+    let result: any;
+    try {
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in AI response');
+      }
+      result = JSON.parse(content);
+    } catch (error) {
+      console.error('Failed to parse AI leave approval response:', error);
+      // Return safe default values if parsing fails - do NOT auto-approve on error
+      return {
+        shouldAutoApprove: false,
+        confidence: 0,
+        reasoning: 'AI evaluation failed - manual review required',
+        risks: ['AI parsing error occurred'],
+        suggestions: ['Manual review required due to AI error'],
+      };
+    }
 
     return {
       shouldAutoApprove: result.shouldAutoApprove ?? false,
