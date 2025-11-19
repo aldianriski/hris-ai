@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import { Card, CardBody, Button, Input, Spinner } from '@heroui/react';
 import { Upload, X, Eye, Image as ImageIcon, Palette } from 'lucide-react';
-import { uploadFile } from '@/lib/upload/file-upload';
+import { uploadFile } from '@/lib/storage/upload';
+import { ALLOWED_FILE_TYPES } from '@/lib/storage/config';
 
 interface WhiteLabelSettingsProps {
   tenantId: string;
@@ -49,16 +50,22 @@ export function WhiteLabelSettings({
       setUploadingLogo(true);
       setUploadError(null);
 
-      const result = await uploadFile(file, 'logos', `${tenantId}/logo`);
+      const result = await uploadFile(file, {
+        bucket: 'avatars', // Using avatars bucket for logos
+        folder: `${tenantId}/logo`,
+        allowedTypes: ALLOWED_FILE_TYPES.IMAGES,
+        makePublic: true,
+      });
 
       if (!result.success) {
         setUploadError(result.error || 'Failed to upload logo');
         return;
       }
 
-      setLogoUrl(result.url || null);
+      const uploadedUrl = result.url || result.path;
+      setLogoUrl(uploadedUrl || null);
       onUpdate({
-        logoUrl: result.url,
+        logoUrl: uploadedUrl,
         faviconUrl,
         primaryColor,
         secondaryColor,
@@ -79,17 +86,23 @@ export function WhiteLabelSettings({
       setUploadingFavicon(true);
       setUploadError(null);
 
-      const result = await uploadFile(file, 'logos', `${tenantId}/favicon`);
+      const result = await uploadFile(file, {
+        bucket: 'avatars', // Using avatars bucket for favicons
+        folder: `${tenantId}/favicon`,
+        allowedTypes: ALLOWED_FILE_TYPES.IMAGES,
+        makePublic: true,
+      });
 
       if (!result.success) {
         setUploadError(result.error || 'Failed to upload favicon');
         return;
       }
 
-      setFaviconUrl(result.url || null);
+      const uploadedUrl = result.url || result.path;
+      setFaviconUrl(uploadedUrl || null);
       onUpdate({
         logoUrl,
-        faviconUrl: result.url,
+        faviconUrl: uploadedUrl,
         primaryColor,
         secondaryColor,
       });

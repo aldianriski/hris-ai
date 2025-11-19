@@ -1,6 +1,19 @@
 /**
+ * @deprecated This file is deprecated. Use @/lib/storage/upload instead.
+ *
  * File Upload Utility
  * Handles file uploads to storage (Supabase Storage or cloud provider)
+ *
+ * DEPRECATION NOTICE:
+ * This implementation uses base64 encoding which is NOT suitable for production.
+ * Please use the proper Supabase Storage implementation in @/lib/storage/upload.ts
+ *
+ * Migration Guide:
+ * OLD: import { uploadFile } from '@/lib/upload/file-upload';
+ * NEW: import { uploadFile } from '@/lib/storage/upload';
+ *
+ * The new API uses an options object:
+ * uploadFile(file, { bucket: 'avatars', folder: 'path', makePublic: true })
  */
 
 export interface UploadResult {
