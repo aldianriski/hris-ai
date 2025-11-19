@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,57 +12,50 @@ import {
   Eye,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from 'lucide-react';
+import { useBlogPosts, useDeleteBlogPost } from '@/lib/hooks/useCms';
+import type { BlogPostStatus } from '@/lib/db/cms-schema';
 
 export default function BlogManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<BlogPostStatus | 'all'>('all');
 
-  // Mock data - replace with actual API call
-  const blogPosts = [
-    {
-      id: '1',
-      title: '5 Tips Mengelola HR di Era Digital',
-      slug: '5-tips-mengelola-hr-di-era-digital',
-      status: 'published',
-      category: 'HR Tips',
-      author: 'Admin',
-      views: 1234,
-      published_at: '2025-11-15',
-      created_at: '2025-11-10',
-    },
-    {
-      id: '2',
-      title: 'Cara Efektif Menghitung Payroll dengan HRIS',
-      slug: 'cara-efektif-menghitung-payroll-dengan-hris',
-      status: 'published',
-      category: 'Payroll',
-      author: 'Admin',
-      views: 892,
-      published_at: '2025-11-12',
-      created_at: '2025-11-08',
-    },
-    {
-      id: '3',
-      title: 'AI dalam HRIS: Masa Depan Manajemen SDM',
-      slug: 'ai-dalam-hris-masa-depan-manajemen-sdm',
-      status: 'draft',
-      category: 'Technology',
-      author: 'Admin',
-      views: 0,
-      published_at: null,
-      created_at: '2025-11-16',
-    },
-  ];
-
-  const filteredPosts = blogPosts.filter((post) => {
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.slug.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Fetch blog posts from API
+  const { data, isLoading, error } = useBlogPosts({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    search: searchQuery || undefined,
   });
+
+  const deleteBlogPost = useDeleteBlogPost();
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!data?.data) return { total: 0, published: 0, draft: 0, views: 0 };
+
+    const posts = data.data;
+    return {
+      total: posts.length,
+      published: posts.filter((p) => p.status === 'published').length,
+      draft: posts.filter((p) => p.status === 'draft').length,
+      views: posts.reduce((sum, p) => sum + p.view_count, 0),
+    };
+  }, [data]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this blog post?')) return;
+
+    try {
+      await deleteBlogPost.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete blog post:', error);
+      alert('Failed to delete blog post');
+    }
+  };
+
+  const blogPosts = data?.data || [];
+  const filteredPosts = blogPosts;
 
   return (
     <div className="space-y-6">
@@ -113,10 +106,10 @@ export default function BlogManagementPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Total Posts" value="32" color="blue" />
-        <StatCard label="Published" value="24" color="green" />
-        <StatCard label="Drafts" value="8" color="gray" />
-        <StatCard label="Total Views" value="15.2K" color="purple" />
+        <StatCard label="Total Posts" value={stats.total.toString()} color="blue" />
+        <StatCard label="Published" value={stats.published.toString()} color="green" />
+        <StatCard label="Drafts" value={stats.draft.toString()} color="gray" />
+        <StatCard label="Total Views" value={stats.views > 1000 ? `${(stats.views / 1000).toFixed(1)}K` : stats.views.toString()} color="purple" />
       </div>
 
       {/* Blog Posts Table */}
@@ -125,76 +118,103 @@ export default function BlogManagementPage() {
           <CardTitle>All Posts ({filteredPosts.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200">
-                <tr>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Title
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Category
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Views
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Published
-                  </th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPosts.map((post) => (
-                  <tr key={post.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{post.title}</p>
-                        <p className="text-sm text-gray-500 mt-1">/{post.slug}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-talixa-blue-100 text-talixa-blue">
-                        {post.category}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <StatusBadge status={post.status} />
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Eye className="h-4 w-4" />
-                        <span className="text-sm">{post.views}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">
-                        {post.published_at || '-'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-gray-600 hover:text-talixa-blue hover:bg-talixa-blue-50 rounded-lg">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button className="p-2 text-gray-600 hover:text-talixa-blue hover:bg-talixa-blue-50 rounded-lg">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-talixa-blue" />
+              <span className="ml-2 text-gray-600">Loading blog posts...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              Failed to load blog posts. Please try again.
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No blog posts found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                      Title
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                      Category
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                      Views
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                      Published
+                    </th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredPosts.map((post) => (
+                    <tr key={post.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <div>
+                          <p className="font-medium text-gray-900">{post.title}</p>
+                          <p className="text-sm text-gray-500 mt-1">/{post.slug}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-talixa-blue-100 text-talixa-blue">
+                          {post.category || 'Uncategorized'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <StatusBadge status={post.status} />
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Eye className="h-4 w-4" />
+                          <span className="text-sm">{post.view_count}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600">
+                          {post.published_at ? new Date(post.published_at).toLocaleDateString() : '-'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/blog/${post.slug}`} target="_blank">
+                            <button className="p-2 text-gray-600 hover:text-talixa-blue hover:bg-talixa-blue-50 rounded-lg">
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          </Link>
+                          <Link href={`/admin/cms/blog/${post.id}`}>
+                            <button className="p-2 text-gray-600 hover:text-talixa-blue hover:bg-talixa-blue-50 rounded-lg">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            disabled={deleteBlogPost.isPending}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                          >
+                            {deleteBlogPost.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

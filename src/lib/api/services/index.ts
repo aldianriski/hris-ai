@@ -7,3 +7,4 @@ export { workflowService } from './workflowService';
 export { complianceService } from './complianceService';
 export { analyticsService } from './analyticsService';
 export { attendanceAnomalyService } from './attendanceAnomalyService';
+export { cmsService, blogService, caseStudyService, leadService, demoRequestService, newsletterService } from './cmsService';

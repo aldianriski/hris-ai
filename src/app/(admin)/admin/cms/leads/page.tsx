@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Users,
@@ -10,74 +10,53 @@ import {
   Phone,
   Building2,
   Calendar,
-  Tag
+  Tag,
+  Loader2,
+  Trash2
 } from 'lucide-react';
+import { useLeads, useDeleteLead } from '@/lib/hooks/useCms';
+import type { LeadStatus } from '@/lib/db/cms-schema';
 
 export default function LeadsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
 
-  // Mock data - replace with actual API call
-  const leads = [
-    {
-      id: '1',
-      email: 'contact@ptmaju.com',
-      name: 'Budi Santoso',
-      company: 'PT Maju Bersama',
-      phone: '+62 812-3456-7890',
-      status: 'new',
-      source: 'website',
-      interest: 'Starter Plan',
-      utm_source: 'google',
-      utm_campaign: 'hris-search',
-      created_at: '2025-11-18T10:30:00Z',
-    },
-    {
-      id: '2',
-      email: 'hr@techstartup.id',
-      company: 'PT Tech Startup Indonesia',
-      phone: '+62 821-9876-5432',
-      status: 'contacted',
-      source: 'demo_form',
-      interest: 'Pro Plan',
-      utm_source: 'linkedin',
-      utm_campaign: 'hr-tech',
-      created_at: '2025-11-17T14:20:00Z',
-    },
-    {
-      id: '3',
-      email: 'admin@retailbesar.co.id',
-      name: 'Siti Rahayu',
-      company: 'PT Retail Besar',
-      phone: '+62 813-2468-1357',
-      status: 'qualified',
-      source: 'referral',
-      interest: 'Enterprise Plan',
-      created_at: '2025-11-16T09:15:00Z',
-    },
-    {
-      id: '4',
-      email: 'info@manufacturing.com',
-      company: 'PT Manufacturing Solutions',
-      status: 'converted',
-      source: 'website',
-      interest: 'Pro Plan',
-      utm_source: 'facebook',
-      utm_campaign: 'manufacturing-ads',
-      created_at: '2025-11-15T16:45:00Z',
-    },
-  ];
-
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-    const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
-    return matchesSearch && matchesStatus && matchesSource;
+  // Fetch leads from API
+  const { data, isLoading, error } = useLeads({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    source: sourceFilter !== 'all' ? sourceFilter : undefined,
+    search: searchQuery || undefined,
   });
+
+  const deleteLead = useDeleteLead();
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!data?.data) return { total: 0, new: 0, qualified: 0, converted: 0 };
+
+    const leadsData = data.data;
+    return {
+      total: leadsData.length,
+      new: leadsData.filter((l) => l.status === 'new').length,
+      qualified: leadsData.filter((l) => l.status === 'qualified').length,
+      converted: leadsData.filter((l) => l.status === 'converted').length,
+    };
+  }, [data]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+
+    try {
+      await deleteLead.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete lead:', error);
+      alert('Failed to delete lead');
+    }
+  };
+
+  const leads = data?.data || [];
+  const filteredLeads = leads;
 
   return (
     <div className="space-y-6">
@@ -141,10 +120,10 @@ export default function LeadsManagementPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Total Leads" value="247" color="blue" />
-        <StatCard label="New" value="45" color="purple" />
-        <StatCard label="Qualified" value="32" color="green" />
-        <StatCard label="Converted" value="18" color="gold" />
+        <StatCard label="Total Leads" value={stats.total.toString()} color="blue" />
+        <StatCard label="New" value={stats.new.toString()} color="purple" />
+        <StatCard label="Qualified" value={stats.qualified.toString()} color="green" />
+        <StatCard label="Converted" value={stats.converted.toString()} color="gold" />
       </div>
 
       {/* Leads Table */}
@@ -153,9 +132,23 @@ export default function LeadsManagementPage() {
           <CardTitle>All Leads ({filteredLeads.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-talixa-blue" />
+              <span className="ml-2 text-gray-600">Loading leads...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              Failed to load leads. Please try again.
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No leads found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-gray-200">
                 <tr>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                     Contact
@@ -237,13 +230,25 @@ export default function LeadsManagementPage() {
                         <button className="px-3 py-1 text-sm text-talixa-blue hover:bg-talixa-blue-50 rounded-lg">
                           View Details
                         </button>
+                        <button
+                          onClick={() => handleDelete(lead.id)}
+                          disabled={deleteLead.isPending}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                        >
+                          {deleteLead.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

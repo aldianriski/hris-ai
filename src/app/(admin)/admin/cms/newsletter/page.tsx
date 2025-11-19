@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Mail,
@@ -10,60 +10,50 @@ import {
   UserPlus,
   UserMinus,
   TrendingUp,
-  Calendar
+  Calendar,
+  Loader2,
+  Trash2
 } from 'lucide-react';
+import { useNewsletterSubscribers, useDeleteNewsletterSubscriber } from '@/lib/hooks/useCms';
+import type { NewsletterStatus } from '@/lib/db/cms-schema';
 
 export default function NewsletterPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<NewsletterStatus | 'all'>('all');
 
-  // Mock data - replace with actual API call
-  const subscribers = [
-    {
-      id: '1',
-      email: 'budi.santoso@ptmaju.com',
-      status: 'active',
-      source: 'website',
-      subscribed_at: '2025-11-15T10:30:00Z',
-    },
-    {
-      id: '2',
-      email: 'siti.rahayu@techstartup.id',
-      status: 'active',
-      source: 'blog',
-      subscribed_at: '2025-11-14T14:20:00Z',
-    },
-    {
-      id: '3',
-      email: 'ahmad.wijaya@retailbesar.co.id',
-      status: 'active',
-      source: 'demo_form',
-      subscribed_at: '2025-11-12T09:15:00Z',
-    },
-    {
-      id: '4',
-      email: 'lisa.permata@manufacturing.com',
-      status: 'unsubscribed',
-      source: 'website',
-      subscribed_at: '2025-11-10T16:45:00Z',
-      unsubscribed_at: '2025-11-17T10:00:00Z',
-    },
-    {
-      id: '5',
-      email: 'john.doe@example.com',
-      status: 'bounced',
-      source: 'website',
-      subscribed_at: '2025-11-08T11:20:00Z',
-    },
-  ];
-
-  const filteredSubscribers = subscribers.filter((subscriber) => {
-    const matchesSearch = subscriber.email
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || subscriber.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Fetch newsletter subscribers from API
+  const { data, isLoading, error } = useNewsletterSubscribers({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    search: searchQuery || undefined,
   });
+
+  const deleteSubscriber = useDeleteNewsletterSubscriber();
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!data?.data) return { total: 0, active: 0, unsubscribed: 0 };
+
+    const subscribersData = data.data;
+    return {
+      total: subscribersData.length,
+      active: subscribersData.filter((s) => s.status === 'active').length,
+      unsubscribed: subscribersData.filter((s) => s.status === 'unsubscribed').length,
+    };
+  }, [data]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this subscriber?')) return;
+
+    try {
+      await deleteSubscriber.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete subscriber:', error);
+      alert('Failed to delete subscriber');
+    }
+  };
+
+  const subscribers = data?.data || [];
+  const filteredSubscribers = subscribers;
 
   return (
     <div className="space-y-6">
@@ -86,34 +76,24 @@ export default function NewsletterPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           label="Total Subscribers"
-          value="1,432"
-          change="+23%"
+          value={stats.total.toString()}
           icon={<Mail />}
           color="blue"
         />
         <StatCard
           label="Active"
-          value="1,389"
-          change="+18%"
+          value={stats.active.toString()}
           icon={<UserPlus />}
           color="green"
         />
         <StatCard
           label="Unsubscribed"
-          value="38"
-          change="-5%"
+          value={stats.unsubscribed.toString()}
           icon={<UserMinus />}
           color="gray"
-        />
-        <StatCard
-          label="Open Rate"
-          value="42.3%"
-          change="+3.2%"
-          icon={<TrendingUp />}
-          color="purple"
         />
       </div>
 
@@ -154,9 +134,23 @@ export default function NewsletterPage() {
           <CardTitle>All Subscribers ({filteredSubscribers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-talixa-blue" />
+              <span className="ml-2 text-gray-600">Loading subscribers...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              Failed to load subscribers. Please try again.
+            </div>
+          ) : filteredSubscribers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No subscribers found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-gray-200">
                 <tr>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                     Email
@@ -218,13 +212,25 @@ export default function NewsletterPage() {
                             Resubscribe
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDelete(subscriber.id)}
+                          disabled={deleteSubscriber.isPending}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                        >
+                          {deleteSubscriber.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -266,17 +272,14 @@ export default function NewsletterPage() {
 function StatCard({
   label,
   value,
-  change,
   icon,
   color,
 }: {
   label: string;
   value: string;
-  change: string;
   icon: React.ReactNode;
   color: string;
 }) {
-  const isPositive = change.startsWith('+');
   const colorClasses = {
     blue: 'bg-talixa-blue-50 text-talixa-blue',
     green: 'bg-talixa-green-50 text-talixa-green',
@@ -295,10 +298,7 @@ function StatCard({
             })}
           </div>
         </div>
-        <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
-        <p className={`text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          {change} from last month
-        </p>
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
       </CardContent>
     </Card>
   );

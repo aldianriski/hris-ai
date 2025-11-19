@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Calendar,
@@ -12,75 +12,50 @@ import {
   Users,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
+import { useDemoRequests, useDeleteDemoRequest } from '@/lib/hooks/useCms';
+import type { DemoRequestStatus } from '@/lib/db/cms-schema';
 
 export default function DemoRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<DemoRequestStatus | 'all'>('all');
 
-  // Mock data - replace with actual API call
-  const demoRequests = [
-    {
-      id: '1',
-      company_name: 'PT Maju Bersama',
-      contact_name: 'Budi Santoso',
-      email: 'budi@ptmaju.com',
-      phone: '+62 812-3456-7890',
-      employee_count: 50,
-      status: 'scheduled',
-      preferred_date: '2025-11-20',
-      preferred_time: '14:00',
-      notes: 'Interested in payroll and attendance features',
-      created_at: '2025-11-18T10:30:00Z',
-    },
-    {
-      id: '2',
-      company_name: 'PT Tech Startup Indonesia',
-      contact_name: 'Siti Rahayu',
-      email: 'siti@techstartup.id',
-      phone: '+62 821-9876-5432',
-      employee_count: 25,
-      status: 'completed',
-      preferred_date: '2025-11-17',
-      preferred_time: '10:00',
-      notes: 'Looking for AI-powered HRIS solution',
-      created_at: '2025-11-15T14:20:00Z',
-    },
-    {
-      id: '3',
-      company_name: 'PT Retail Besar',
-      contact_name: 'Ahmad Wijaya',
-      email: 'ahmad@retailbesar.co.id',
-      phone: '+62 813-2468-1357',
-      employee_count: 200,
-      status: 'pending',
-      preferred_date: '2025-11-22',
-      notes: 'Multi-location management needed',
-      created_at: '2025-11-18T09:15:00Z',
-    },
-    {
-      id: '4',
-      company_name: 'PT Manufacturing Solutions',
-      contact_name: 'Lisa Permata',
-      email: 'lisa@manufacturing.com',
-      phone: '+62 815-7531-2468',
-      employee_count: 150,
-      status: 'cancelled',
-      preferred_date: '2025-11-19',
-      notes: 'Rescheduled to later date',
-      created_at: '2025-11-16T16:45:00Z',
-    },
-  ];
-
-  const filteredRequests = demoRequests.filter((request) => {
-    const matchesSearch =
-      request.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Fetch demo requests from API
+  const { data, isLoading, error } = useDemoRequests({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    search: searchQuery || undefined,
   });
+
+  const deleteDemoRequest = useDeleteDemoRequest();
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!data?.data) return { total: 0, pending: 0, scheduled: 0, completed: 0 };
+
+    const requests = data.data;
+    return {
+      total: requests.length,
+      pending: requests.filter((r) => r.status === 'pending').length,
+      scheduled: requests.filter((r) => r.status === 'scheduled').length,
+      completed: requests.filter((r) => r.status === 'completed').length,
+    };
+  }, [data]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this demo request?')) return;
+
+    try {
+      await deleteDemoRequest.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete demo request:', error);
+      alert('Failed to delete demo request');
+    }
+  };
+
+  const demoRequests = data?.data || [];
+  const filteredRequests = demoRequests;
 
   return (
     <div className="space-y-6">
@@ -130,10 +105,10 @@ export default function DemoRequestsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Total Requests" value="89" color="blue" icon={<Calendar />} />
-        <StatCard label="Pending" value="12" color="purple" icon={<Clock />} />
-        <StatCard label="Scheduled" value="23" color="green" icon={<CheckCircle />} />
-        <StatCard label="Completed" value="48" color="gold" icon={<CheckCircle />} />
+        <StatCard label="Total Requests" value={stats.total.toString()} color="blue" icon={<Calendar />} />
+        <StatCard label="Pending" value={stats.pending.toString()} color="purple" icon={<Clock />} />
+        <StatCard label="Scheduled" value={stats.scheduled.toString()} color="green" icon={<CheckCircle />} />
+        <StatCard label="Completed" value={stats.completed.toString()} color="gold" icon={<CheckCircle />} />
       </div>
 
       {/* Demo Requests Table */}
@@ -142,8 +117,22 @@ export default function DemoRequestsPage() {
           <CardTitle>All Demo Requests ({filteredRequests.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredRequests.map((request) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-talixa-blue" />
+              <span className="ml-2 text-gray-600">Loading demo requests...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              Failed to load demo requests. Please try again.
+            </div>
+          ) : filteredRequests.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No demo requests found.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredRequests.map((request) => (
               <div
                 key={request.id}
                 className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
@@ -222,14 +211,25 @@ export default function DemoRequestsPage() {
                     <button className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
                       Contact
                     </button>
-                    <button className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50">
-                      Cancel
+                    <button
+                      onClick={() => handleDelete(request.id)}
+                      disabled={deleteDemoRequest.isPending}
+                      className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deleteDemoRequest.isPending ? (
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : (
+                        'Delete'
+                      )}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
