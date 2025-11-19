@@ -1,44 +1,10 @@
 'use client';
 
-/**
- * ⚠️ BACKEND API REQUIRED - Sprint 2
- *
- * This component currently uses mock data because there is no backend API endpoint
- * for employee recognition/kudos features.
- *
- * Required APIs:
- * - GET /api/v1/gamification/recognitions - List all recognitions
- * - POST /api/v1/gamification/recognitions - Create new recognition
- * - POST /api/v1/gamification/recognitions/{id}/like - Like a recognition
- *
- * Expected response format for GET:
- * {
- *   data: [{
- *     id: string;
- *     from_user_id: string;
- *     to_user_id: string;
- *     recognition_type: 'thank_you' | 'great_work' | 'team_player' | 'helpful' | 'innovative';
- *     message: string;
- *     points_awarded: number;
- *     is_public: boolean;
- *     created_at: string;
- *     likes_count: number;
- *     from_user: { id, name, avatar, position };
- *     to_user: { id, name, avatar, position };
- *   }]
- * }
- *
- * Once the API is implemented, replace mock data with:
- * - useEffect hook to fetch recognitions
- * - POST handler for creating new recognitions
- * - Loading and error states
- * - Real-time updates via WebSocket or polling
- */
-
-import { Card, CardBody, Avatar, Chip, Button, Textarea, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react';
-import { Heart, ThumbsUp, Star, Zap, Award, Plus, Send } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Card, CardBody, Avatar, Chip, Button, Textarea, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Spinner } from '@heroui/react';
+import { Heart, ThumbsUp, Star, Zap, Award, Plus, Send, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Recognition {
   id: string;
@@ -66,121 +32,96 @@ export function RecognitionWall() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedType, setSelectedType] = useState<string>('thank_you');
   const [message, setMessage] = useState('');
+  const [selectedToUserId, setSelectedToUserId] = useState<string>('');
+  const [recognitions, setRecognitions] = useState<Recognition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // MOCK DATA - Replace with API call when backend is ready
-  // See documentation comment at top of file for details
-  const recognitions: Recognition[] = [
-    {
-      id: '1',
-      fromUser: {
-        id: '1',
-        name: 'Sarah Johnson',
-        avatar: 'https://i.pravatar.cc/150?u=sarah',
-        position: 'Engineering Manager',
-      },
-      toUser: {
-        id: '2',
-        name: 'Alex Thompson',
-        avatar: 'https://i.pravatar.cc/150?u=alex',
-        position: 'Senior Software Engineer',
-      },
-      type: 'great_work',
-      message:
-        'Alex went above and beyond to deliver the new feature ahead of schedule. The code quality is exceptional and the documentation is thorough. Great work!',
-      pointsAwarded: 50,
-      isPublic: true,
-      createdAt: '2025-11-18T10:30:00Z',
-      likes: 12,
-    },
-    {
-      id: '2',
-      fromUser: {
-        id: '3',
-        name: 'Maria Garcia',
-        avatar: 'https://i.pravatar.cc/150?u=maria',
-        position: 'Marketing Director',
-      },
-      toUser: {
-        id: '4',
-        name: 'John Doe',
-        avatar: 'https://i.pravatar.cc/150?u=john',
-        position: 'Product Designer',
-      },
-      type: 'team_player',
-      message:
-        'John has been incredibly supportive in helping the marketing team with design assets. Always willing to jump in and collaborate!',
-      pointsAwarded: 30,
-      isPublic: true,
-      createdAt: '2025-11-17T15:45:00Z',
-      likes: 8,
-    },
-    {
-      id: '3',
-      fromUser: {
-        id: '5',
-        name: 'Lisa Wang',
-        avatar: 'https://i.pravatar.cc/150?u=lisa',
-        position: 'HR Manager',
-      },
-      toUser: {
-        id: '6',
-        name: 'David Kim',
-        avatar: 'https://i.pravatar.cc/150?u=david',
-        position: 'Finance Analyst',
-      },
-      type: 'helpful',
-      message:
-        'David helped me understand the new payroll system and patiently answered all my questions. Really appreciate the help!',
-      pointsAwarded: 20,
-      isPublic: true,
-      createdAt: '2025-11-17T09:20:00Z',
-      likes: 5,
-    },
-    {
-      id: '4',
-      fromUser: {
-        id: '7',
-        name: 'Emma Wilson',
-        avatar: 'https://i.pravatar.cc/150?u=emma',
-        position: 'Operations Lead',
-      },
-      toUser: {
-        id: '8',
-        name: 'Michael Brown',
-        avatar: 'https://i.pravatar.cc/150?u=michael',
-        position: 'Senior Engineer',
-      },
-      type: 'innovative',
-      message:
-        'Michael proposed an innovative solution that reduced our API response time by 40%. Brilliant thinking!',
-      pointsAwarded: 75,
-      isPublic: true,
-      createdAt: '2025-11-16T14:10:00Z',
-      likes: 15,
-    },
-    {
-      id: '5',
-      fromUser: {
-        id: '9',
-        name: 'Sophie Chen',
-        avatar: 'https://i.pravatar.cc/150?u=sophie',
-        position: 'Content Strategist',
-      },
-      toUser: {
-        id: '10',
-        name: 'James Lee',
-        avatar: 'https://i.pravatar.cc/150?u=james',
-        position: 'Sales Manager',
-      },
-      type: 'thank_you',
-      message:
-        'Thank you for providing valuable customer insights that helped shape our content strategy. Your input was invaluable!',
-      pointsAwarded: 25,
-      isPublic: true,
-      createdAt: '2025-11-16T11:30:00Z',
-      likes: 6,
-    },
-  ];
+  useEffect(() => {
+    fetchRecognitions();
+  }, []);
+
+  async function fetchRecognitions() {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/gamification/recognitions?limit=50');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch recognitions');
+      }
+
+      const result = await response.json();
+      setRecognitions(result.data || []);
+    } catch (err) {
+      console.error('Error fetching recognitions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch recognitions');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLike(recognitionId: string) {
+    try {
+      const response = await fetch(`/api/v1/gamification/recognitions/${recognitionId}/like`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like recognition');
+      }
+
+      const result = await response.json();
+
+      // Update local state
+      setRecognitions((prev) =>
+        prev.map((r) =>
+          r.id === recognitionId ? { ...r, likes: result.likesCount } : r
+        )
+      );
+    } catch (err) {
+      console.error('Error liking recognition:', err);
+    }
+  }
+
+  async function handleSubmitRecognition() {
+    if (!message.trim() || !selectedToUserId) return;
+
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/v1/gamification/recognitions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toUserId: selectedToUserId,
+          recognitionType: selectedType,
+          message: message.trim(),
+          isPublic: true,
+          pointsAwarded: 10,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create recognition');
+      }
+
+      // Refresh recognitions list
+      await fetchRecognitions();
+
+      // Reset form and close modal
+      setMessage('');
+      setSelectedToUserId('');
+      onOpenChange();
+    } catch (err) {
+      console.error('Error creating recognition:', err);
+      alert(err instanceof Error ? err.message : 'Failed to create recognition');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
 
   const recognitionTypes = [
     { value: 'thank_you', label: 'Thank You', icon: Heart, color: 'text-pink-600', points: 10 },
@@ -214,12 +155,35 @@ export function RecognitionWall() {
     return `${diffDays}d ago`;
   };
 
-  const handleSendRecognition = () => {
-    // TODO: Implement API call
-    console.log('Sending recognition:', { type: selectedType, message });
-    onOpenChange();
-    setMessage('');
-  };
+
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center space-y-4">
+          <Spinner size="lg" color="primary" />
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading recognitions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error Loading Recognitions</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+        <Button color="primary" size="sm" onPress={() => fetchRecognitions()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -313,6 +277,7 @@ export function RecognitionWall() {
                           size="sm"
                           variant="light"
                           startContent={<Heart className="h-4 w-4" />}
+                          onPress={() => handleLike(recognition.id)}
                         >
                           {recognition.likes} Likes
                         </Button>
@@ -400,7 +365,7 @@ export function RecognitionWall() {
                 </Button>
                 <Button
                   color="primary"
-                  onPress={handleSendRecognition}
+                  onPress={handleSubmitRecognition}
                   startContent={<Send className="h-4 w-4" />}
                   isDisabled={!message.trim()}
                 >
