@@ -420,7 +420,24 @@ Please validate this payroll calculation and identify any additional errors or c
       temperature: 0.2,
     });
 
-    const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+    let result: any;
+    try {
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in AI response');
+      }
+      result = JSON.parse(content);
+    } catch (error) {
+      console.error('Failed to parse AI payroll error detection response:', error);
+      // Return safe default values if parsing fails
+      return {
+        hasErrors: false,
+        errors: [],
+        confidence: 0,
+        review: 'AI validation failed - manual review required',
+        recommendations: ['Manual review required due to AI parsing error'],
+      };
+    }
 
     return {
       hasErrors: result.hasErrors ?? false,

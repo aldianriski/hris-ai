@@ -12,6 +12,7 @@ import { requireManager } from '@/lib/middleware/auth';
 import { withRateLimit } from '@/lib/ratelimit/middleware';
 import { logLeaveAction } from '@/lib/utils/auditLog';
 import { sendLeaveApprovedEmail } from '@/lib/email/sender';
+import { getAppUrl } from '@/lib/config/env';
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -133,7 +134,7 @@ async function handler(
       days: updatedRequest.days_count,
       approvedBy: userContext.email,
       notes: validatedData.notes,
-      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
+      dashboardUrl: `${getAppUrl()}/dashboard`,
     });
 
     if (!emailResult.success) {

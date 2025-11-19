@@ -27,58 +27,6 @@ import {
 } from 'lucide-react';
 import { useRealtimeTenants } from '@/lib/realtime/use-realtime-tenants';
 
-// Mock data - will be replaced with real API
-const mockTenants = [
-  {
-    id: '1',
-    companyName: 'PT Maju Bersama',
-    slug: 'maju-bersama',
-    primaryAdmin: { firstName: 'Budi', lastName: 'Santoso', email: 'budi@majubersama.com' },
-    subscriptionPlan: 'professional',
-    subscriptionStatus: 'active',
-    currentEmployeeCount: 45,
-    maxEmployees: 200,
-    status: 'active',
-    createdAt: '2024-10-15T10:30:00Z',
-  },
-  {
-    id: '2',
-    companyName: 'CV Digital Solutions',
-    slug: 'digital-solutions',
-    primaryAdmin: { firstName: 'Ani', lastName: 'Wijaya', email: 'ani@digital-solutions.com' },
-    subscriptionPlan: 'starter',
-    subscriptionStatus: 'active',
-    currentEmployeeCount: 28,
-    maxEmployees: 50,
-    status: 'active',
-    createdAt: '2024-11-01T14:20:00Z',
-  },
-  {
-    id: '3',
-    companyName: 'PT Tech Inovasi',
-    slug: 'tech-inovasi',
-    primaryAdmin: { firstName: 'Rizki', lastName: 'Pratama', email: 'rizki@techinovasi.com' },
-    subscriptionPlan: 'trial',
-    subscriptionStatus: 'trial',
-    currentEmployeeCount: 8,
-    maxEmployees: 10,
-    status: 'active',
-    createdAt: '2024-11-15T09:00:00Z',
-  },
-  {
-    id: '4',
-    companyName: 'UD Sejahtera',
-    slug: 'sejahtera',
-    primaryAdmin: { firstName: 'Siti', lastName: 'Rahma', email: 'siti@sejahtera.com' },
-    subscriptionPlan: 'starter',
-    subscriptionStatus: 'suspended',
-    currentEmployeeCount: 15,
-    maxEmployees: 50,
-    status: 'suspended',
-    createdAt: '2024-09-10T11:45:00Z',
-  },
-];
-
 const statusColors = {
   active: 'success',
   trial: 'primary',
@@ -99,6 +47,7 @@ export function TenantListTable() {
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Use real-time hook for automatic updates
   const { tenants, setTenants } = useRealtimeTenants([]);
@@ -122,6 +71,7 @@ export function TenantListTable() {
 
         const result = await response.json();
         setTenants(result.data || []);
+        setTotalCount(result.count || result.data?.length || 0);
       } catch (err) {
         console.error('Error fetching tenants:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tenants');
@@ -205,7 +155,7 @@ export function TenantListTable() {
           </div>
 
           <div className="flex items-center gap-2 mt-4 text-sm text-gray-600 dark:text-gray-400">
-            <span>Showing {filteredTenants.length} of {mockTenants.length} tenants</span>
+            <span>Showing {filteredTenants.length} {totalCount > filteredTenants.length ? `of ${totalCount}` : ''} tenants</span>
           </div>
         </CardBody>
       </Card>

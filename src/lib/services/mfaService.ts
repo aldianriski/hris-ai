@@ -294,21 +294,98 @@ export class MFAService {
   }
 
   /**
-   * Encrypt secret for storage (simple implementation - use proper encryption in production)
+   * Get encryption key from environment variable
+   * Key must be 32 bytes (256 bits) for AES-256
    */
-  private static encryptSecret(secret: string): string {
-    // TODO: Implement proper encryption using env variable key
-    // For now, just base64 encode (NOT SECURE - use AES-256 in production)
-    return Buffer.from(secret).toString('base64');
+  private static getEncryptionKey(): Buffer {
+    const key = process.env.MFA_ENCRYPTION_KEY;
+
+    if (!key) {
+      throw new Error(
+        'MFA_ENCRYPTION_KEY environment variable is required. ' +
+        'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+      );
+    }
+
+    // Convert hex string to Buffer
+    const keyBuffer = Buffer.from(key, 'hex');
+
+    if (keyBuffer.length !== 32) {
+      throw new Error(
+        'MFA_ENCRYPTION_KEY must be 32 bytes (64 hex characters). ' +
+        'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+      );
+    }
+
+    return keyBuffer;
   }
 
   /**
-   * Decrypt secret from storage
+   * Encrypt secret for storage using AES-256-GCM
+   * Returns: iv:authTag:encryptedData (all in hex)
+   */
+  private static encryptSecret(secret: string): string {
+    try {
+      const key = this.getEncryptionKey();
+
+      // Generate a random initialization vector (IV)
+      const iv = crypto.randomBytes(16);
+
+      // Create cipher with AES-256-GCM
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+      // Encrypt the secret
+      let encrypted = cipher.update(secret, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+
+      // Get the authentication tag
+      const authTag = cipher.getAuthTag();
+
+      // Return format: iv:authTag:encryptedData
+      return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+    } catch (error) {
+      console.error('Error encrypting MFA secret:', error);
+      throw new Error('Failed to encrypt MFA secret');
+    }
+  }
+
+  /**
+   * Decrypt secret from storage using AES-256-GCM
+   * Input format: iv:authTag:encryptedData (all in hex)
    */
   private static decryptSecret(encryptedSecret: string): string {
-    // TODO: Implement proper decryption
-    // For now, just base64 decode
-    return Buffer.from(encryptedSecret, 'base64').toString('utf-8');
+    try {
+      const key = this.getEncryptionKey();
+
+      // Split the encrypted string into components
+      const parts = encryptedSecret.split(':');
+
+      if (parts.length !== 3) {
+        throw new Error('Invalid encrypted secret format');
+      }
+
+      const [ivHex, authTagHex, encryptedHex] = parts;
+
+      // Convert hex strings back to Buffers
+      const iv = Buffer.from(ivHex, 'hex');
+      const authTag = Buffer.from(authTagHex, 'hex');
+      const encrypted = Buffer.from(encryptedHex, 'hex');
+
+      // Create decipher with AES-256-GCM
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+
+      // Set the authentication tag
+      decipher.setAuthTag(authTag);
+
+      // Decrypt the data
+      let decrypted = decipher.update(encrypted, undefined, 'utf8');
+      decrypted += decipher.final('utf8');
+
+      return decrypted;
+    } catch (error) {
+      console.error('Error decrypting MFA secret:', error);
+      throw new Error('Failed to decrypt MFA secret');
+    }
   }
 
   /**

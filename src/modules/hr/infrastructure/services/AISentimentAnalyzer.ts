@@ -81,7 +81,18 @@ Respond in JSON format:
         temperature: 0.3,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      let result: any;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error('No content in AI response');
+        }
+        result = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse AI sentiment analysis response:', parseError);
+        // Fall back to basic sentiment analysis on parse error
+        return this.basicSentimentAnalysis(context);
+      }
 
       return {
         sentiment: result.sentiment ?? 'neutral',
@@ -135,7 +146,23 @@ Respond in JSON format:
         temperature: 0.3,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      let result: any;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error('No content in AI response');
+        }
+        result = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse AI concern detection response:', parseError);
+        // Return safe defaults on parse error
+        return {
+          hasConcerns: false,
+          concernLevel: 'low' as const,
+          concerns: [],
+          suggestions: ['Manual review recommended due to AI parsing error'],
+        };
+      }
 
       return {
         hasConcerns: result.hasConcerns ?? false,
@@ -193,7 +220,23 @@ Respond in JSON format:
         temperature: 0.2,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      let result: any;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error('No content in AI response');
+        }
+        result = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse AI bias detection response:', parseError);
+        // Return safe defaults on parse error
+        return {
+          hasPotentialBias: false,
+          biasType: null,
+          confidence: 0.5,
+          explanation: 'Bias detection unavailable - parsing error',
+        };
+      }
 
       return {
         hasPotentialBias: result.hasPotentialBias ?? false,
@@ -239,7 +282,18 @@ Return an array of suggestions in JSON format:
         temperature: 0.4,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      let result: any;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error('No content in AI response');
+        }
+        result = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse AI improvement suggestions response:', parseError);
+        return [];
+      }
+
       return result.suggestions ?? [];
     } catch (error) {
       console.error('Improvement suggestions failed:', error);

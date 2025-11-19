@@ -30,29 +30,6 @@ interface TenantDetailViewProps {
   tenantId: string;
 }
 
-// Mock data - will be replaced with real API call
-const mockTenant = {
-  id: '1',
-  companyName: 'PT Maju Bersama',
-  slug: 'maju-bersama',
-  industry: 'Technology',
-  companySize: '51-200',
-  primaryAdmin: {
-    id: '1',
-    firstName: 'Budi',
-    lastName: 'Santoso',
-    email: 'budi@majubersama.com',
-  },
-  subscriptionPlan: 'professional',
-  subscriptionStatus: 'active',
-  currentEmployeeCount: 45,
-  maxEmployees: 200,
-  status: 'active',
-  logoUrl: null,
-  primaryColor: '#6366f1',
-  createdAt: '2024-10-15T10:30:00Z',
-};
-
 const statusColors = {
   active: 'success',
   trial: 'primary',

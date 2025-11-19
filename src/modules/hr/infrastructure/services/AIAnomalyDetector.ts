@@ -231,7 +231,24 @@ Should HR review this attendance record?`;
         temperature: 0.3,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      let result: any;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error('No content in AI response');
+        }
+        result = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse AI anomaly detection response:', parseError);
+        // If JSON parsing fails, fallback to safe defaults
+        const highestConfidence = anomalies[0]?.confidence ?? 0.8;
+        return {
+          isAnomaly: highestConfidence > 0.8,
+          confidence: highestConfidence,
+          reason: anomalies[0]?.reason ?? 'AI parsing failed - review manually',
+          suggestions: ['Manual review required due to AI error'],
+        };
+      }
 
       return {
         isAnomaly: result.isAnomaly ?? true,

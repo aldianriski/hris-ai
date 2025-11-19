@@ -20,6 +20,22 @@ export class AIDocumentExtractor {
   }
 
   /**
+   * Safely parse JSON from AI response with error handling
+   */
+  private safelyParseAIResponse(response: OpenAI.Chat.Completions.ChatCompletion, context: string): any {
+    try {
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in AI response');
+      }
+      return JSON.parse(content);
+    } catch (error) {
+      console.error(`Failed to parse AI ${context} response:`, error);
+      return {};
+    }
+  }
+
+  /**
    * Extract data from KTP (Indonesian ID Card)
    */
   async extractKTP(imageUrl: string): Promise<DocumentExtractionResult> {
@@ -93,7 +109,7 @@ Return JSON format:
         temperature: 0.1,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      const result = this.safelyParseAIResponse(response, 'document extraction');
 
       return {
         documentType: 'ktp',
@@ -186,7 +202,7 @@ Return JSON format:
         temperature: 0.1,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      const result = this.safelyParseAIResponse(response, 'document extraction');
 
       return {
         documentType: 'npwp',
@@ -267,7 +283,7 @@ Return JSON format:
         temperature: 0.1,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      const result = this.safelyParseAIResponse(response, 'document extraction');
 
       return {
         documentType: 'bpjs_kesehatan',
@@ -369,7 +385,7 @@ Note: This is a ${mimeType} file. Extract what you can from the context.`;
         temperature: 0.1,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content ?? '{}');
+      const result = this.safelyParseAIResponse(response, 'document extraction');
 
       return {
         documentType: 'contract',
@@ -461,7 +477,7 @@ Return JSON:
         temperature: 0.1,
       });
 
-      const detection = JSON.parse(detectResponse.choices[0]?.message?.content ?? '{}');
+      const detection = this.safelyParseAIResponse(detectResponse, 'document type detection');
       const detectedType = detection.documentType;
 
       // Extract based on detected type

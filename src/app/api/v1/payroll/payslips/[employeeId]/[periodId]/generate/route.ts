@@ -13,6 +13,7 @@ import { logPayrollAction } from '@/lib/utils/auditLog';
 import { generatePayslipPDF } from '@/lib/pdf/generator';
 import { uploadFile } from '@/lib/storage/upload';
 import { sendPayslipReadyEmail } from '@/lib/email/sender';
+import { getAppUrl } from '@/lib/config/env';
 import { STORAGE_BUCKETS } from '@/lib/storage/config';
 
 async function handler(
@@ -226,8 +227,8 @@ async function handler(
       month: monthNames[period.month - 1] || 'Unknown',
       year: period.year,
       netSalary: payrollDetail.net_salary || 0,
-      downloadUrl: pdfUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payslips/${payslip.id}`,
-      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
+      downloadUrl: pdfUrl || `${getAppUrl()}/payslips/${payslip.id}`,
+      dashboardUrl: `${getAppUrl()}/dashboard`,
     });
 
     if (!emailResult.success) {
