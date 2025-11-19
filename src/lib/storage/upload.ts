@@ -3,7 +3,7 @@
  * Handles file uploads to Supabase Storage
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 import {
   STORAGE_BUCKETS,
   STORAGE_LIMITS,
@@ -108,7 +108,7 @@ export async function uploadFile(
     const path = folder ? `${folder}/${filename}` : filename;
 
     // Upload to Supabase Storage
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, {
@@ -167,7 +167,7 @@ export async function deleteFile(
   path: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase.storage
       .from(bucket)
       .remove([path]);
@@ -196,7 +196,7 @@ export async function deleteMultipleFiles(
   paths: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase.storage
       .from(bucket)
       .remove(paths);
@@ -226,7 +226,7 @@ export async function moveFile(
   toPath: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase.storage
       .from(bucket)
       .move(fromPath, toPath);
